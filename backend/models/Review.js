@@ -25,7 +25,7 @@ const reviewSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true
-    }
+    },
     
     verifiedPurchase: {
     type: Boolean,
