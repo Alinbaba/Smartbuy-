@@ -36,7 +36,7 @@ const {
 // Authentication Middleware
 // ======================================================
 
-const { protect, authorize } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/authMiddleware");
 // ======================================================
 // Create Payment
 // Customer creates payment for an order
