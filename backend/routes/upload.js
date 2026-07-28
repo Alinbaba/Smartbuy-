@@ -55,7 +55,13 @@ router.post(
 
     "/multiple",
 
-    protect
+    protect,
+    
+    upload.multiple("files"),
+    
+    uploadMultipleFiles
+    );
+
     // ======================================
 // Get My Uploads
 // ======================================
