@@ -3,7 +3,7 @@
 // ======================================================
 
 
-const Supplier = require("../models/Suppliers");
+const Supplier = require("../models/Supplier");
 
 
 // ======================================================
