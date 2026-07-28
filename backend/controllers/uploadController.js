@@ -1,5 +1,26 @@
 const Upload = require("../models/Upload");
 const User = require("../models/User");
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
+const uploadToCloudinary = (fileBuffer) => {
+    return new Promise((resolve, reject) => {
+
+        const stream = cloudinary.uploader.upload_stream(
+            {
+                folder: "SmartBuy",
+                resource_type: "auto"
+            },
+            (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            }
+        );
+
+        streamifier.createReadStream(fileBuffer).pipe(stream);
+
+    });
+};
+
 // ======================================
 // Upload Single File
 // ======================================
@@ -22,6 +43,9 @@ exports.uploadSingleFile = async (req, res) => {
 
         }
 
+        // Upload to Cloudinary
+const result = await uploadToCloudinary(req.file.buffer);
+
         // Create upload record
 
         const upload = await Upload.create({
@@ -32,11 +56,11 @@ exports.uploadSingleFile = async (req, res) => {
 
             originalName: req.file.originalname,
 
-            fileName: req.file.filename,
+            fileName: result.public_id,
 
-            fileUrl: req.file.path,
+           fileUrl: result.secure_url,
 
-            filePath: req.file.path,
+           filePath: result.secure_url,
 
             fileType: req.file.mimetype.startsWith("image")
                 ? "image"
@@ -100,6 +124,7 @@ exports.uploadMultipleFiles = async (req, res) => {
         const uploads = [];
 
         for (const file of req.files) {
+            const result = await uploadToCloudinary(file.buffer);
 
             const upload = await Upload.create({
 
@@ -109,11 +134,11 @@ exports.uploadMultipleFiles = async (req, res) => {
 
                 originalName: file.originalname,
 
-                fileName: file.filename,
+                fileName: result.public_id,
 
-                fileUrl: file.path,
+                fileUrl: result.secure_url,
 
-                filePath: file.path,
+                filePath: result.secure_url,
 
                 fileType: file.mimetype.startsWith("image")
                     ? "image"
