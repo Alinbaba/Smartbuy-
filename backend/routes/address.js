@@ -35,9 +35,7 @@ const {
 const {
 
     protect,
-
-    admin
-
+    authorize
 } = require("../middleware/authMiddleware");
 // ======================================================
 // Customer Address Routes
@@ -102,10 +100,9 @@ router.delete(
 router.get(
     "/admin/all",
     protect,
-    admin,
+    authorize("admin", "super-admin"),
     getAllAddresses
 );
-
 
 // ======================================================
 // Export Router
