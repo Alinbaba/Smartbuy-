@@ -30,7 +30,7 @@ const {
 // Authentication Middleware
 // ======================================================
 
-const { protect, authorize } = require("../middleware/auth");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
 // ======================================================
 // Order Routes
