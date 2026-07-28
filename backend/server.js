@@ -2,8 +2,6 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const { errorHandler } = require("./middleware/errorHandler");
-const kycRoutes = require("./routes/kycRoutes");
-const auditLogRoutes = require("./routes/auditLogRoutes");
 const connectDB = require("./config/db");
 
 dotenv.config();
@@ -46,8 +44,8 @@ app.use("/api/users", require("./routes/user"));
 app.use("/api/wallets", require("./routes/wallet"));
 app.use("/api/transactions", require("./routes/transaction"));
 app.use("/api/withdrawals", require("./routes/withdrawal"));
-app.use("/api/kyc", kycRoutes);
-app.use("/api/audit-logs", auditLogRoutes);
+app.use("/api/kyc", require("./routes/kyc"));
+app.use("/api/audit-logs", require("./routes/auditLog"));
 // ==========================
 // Home Route
 // ==========================
