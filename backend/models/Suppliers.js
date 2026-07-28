@@ -52,7 +52,6 @@ const supplierSchema = new mongoose.Schema({
 
     },
 
-});
 // ==================================================
 // Supplier Contact Information
 // ==================================================
