@@ -1,31 +1,58 @@
 const multer = require("multer");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("../config/cloudinary");
 
-const storage = new CloudinaryStorage({
+// Store files in memory before uploading to Cloudinary
+const storage = multer.memoryStorage();
 
-    cloudinary,
+// Allowed MIME types
+const allowedMimeTypes = [
+    // Images
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/avif",
 
-    params: {
+    // Videos
+    "video/mp4",
+    "video/quicktime",
+    "video/x-msvideo",
+    "video/x-matroska",
+    "video/webm",
 
-        folder: "SmartBuy",
+    // Documents
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 
-        allowed_formats: [
+    // Archives
+    "application/zip",
+    "application/x-zip-compressed",
 
-            "jpg",
-            "jpeg",
-            "png",
-            "webp"
+    // Audio
+    "audio/mpeg",
+    "audio/mp4"
+];
 
-        ]
+const fileFilter = (req, file, cb) => {
 
+    if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error("Unsupported file type."), false);
     }
 
-});
+};
 
 const upload = multer({
 
-    storage
+    storage,
+
+    fileFilter,
+
+    limits: {
+
+        fileSize: 100 * 1024 * 1024 // 50MB
+
+    }
 
 });
 
