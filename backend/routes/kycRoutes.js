@@ -31,7 +31,7 @@ const {
     protect,
     authorize
 
-} = require("../middleware/auth");
+} = require("../middleware/authMiddleware.js");
 // ======================================================
 // Submit KYC
 // Customer submits KYC
