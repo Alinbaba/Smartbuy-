@@ -1,0 +1,1939 @@
+/* ==========================================================
+   RESPONSIVE.CSS
+
+   PART 1
+
+   GLOBAL RESPONSIVE FOUNDATION
+
+========================================================== */
+
+
+
+/* ==========================================
+
+   Large Desktop
+
+   1600px+
+
+========================================== */
+
+@media (min-width:1600px){
+
+    .container,
+    .hero-container,
+    .community-container,
+    .download-container,
+    .footer-container{
+
+        max-width:1600px;
+
+        margin:auto;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Standard Desktop
+
+   1440px
+
+========================================== */
+
+@media (max-width:1440px){
+
+    section{
+
+        padding-left:6%;
+
+        padding-right:6%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Laptop
+
+   1280px
+
+========================================== */
+
+@media (max-width:1280px){
+
+    h1{
+
+        font-size:54px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Small Laptop
+
+   1024px
+
+========================================== */
+
+@media (max-width:1024px){
+
+    html{
+
+        font-size:95%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Tablet
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    html{
+
+        font-size:90%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Mobile
+
+   540px
+
+========================================== */
+
+@media (max-width:540px){
+
+    html{
+
+        font-size:87%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Small Mobile
+
+   414px
+
+========================================== */
+
+@media (max-width:414px){
+
+    html{
+
+        font-size:84%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Tiny Mobile
+
+   360px
+
+========================================== */
+
+@media (max-width:360px){
+
+    html{
+
+        font-size:80%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Ultra Small Devices
+
+========================================== */
+
+img{
+
+    max-width:100%;
+
+    height:auto;
+
+}
+
+
+
+button{
+
+    cursor:pointer;
+
+}
+
+
+
+/* ==========================================================
+   END OF GLOBAL RESPONSIVE FOUNDATION
+
+========================================================== */
+/* ==========================================================
+   RESPONSIVE.CSS
+
+   PART 2
+
+   HEADER & NAVIGATION RESPONSIVE
+
+========================================================== */
+
+
+
+/* ==========================================
+
+   Desktop (1200px and below)
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .header{
+
+        padding:16px 5%;
+
+    }
+
+    .navbar{
+
+        gap:20px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Laptop (1024px and below)
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .header{
+
+        padding:15px 4%;
+
+    }
+
+    .logo{
+
+        font-size:28px;
+
+    }
+
+    .search-bar{
+
+        max-width:350px;
+
+    }
+
+    .header-icons{
+
+        gap:15px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Tablet (900px and below)
+
+========================================== */
+
+@media (max-width:900px){
+
+    .navbar{
+
+        display:none;
+
+    }
+
+    .menu-toggle{
+
+        display:flex;
+
+        align-items:center;
+
+        justify-content:center;
+
+    }
+
+    .search-bar{
+
+        max-width:280px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Tablet Portrait (768px and below)
+
+========================================== */
+
+@media (max-width:768px){
+
+    .header{
+
+        padding:14px 20px;
+
+    }
+
+    .search-bar{
+
+        display:none;
+
+    }
+
+    .logo{
+
+        font-size:24px;
+
+    }
+
+    .header-icons{
+
+        gap:12px;
+
+    }
+
+    .header-icons i{
+
+        font-size:20px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Mobile (540px and below)
+
+========================================== */
+
+@media (max-width:540px){
+
+    .header{
+
+        padding:12px 15px;
+
+    }
+
+    .logo{
+
+        font-size:22px;
+
+    }
+
+    .header-icons{
+
+        gap:10px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Small Mobile (414px and below)
+
+========================================== */
+
+@media (max-width:414px){
+
+    .logo{
+
+        font-size:20px;
+
+    }
+
+    .header-icons i{
+
+        font-size:18px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Tiny Mobile (360px and below)
+
+========================================== */
+
+@media (max-width:360px){
+
+    .header{
+
+        padding:10px 12px;
+
+    }
+
+    .logo{
+
+        font-size:18px;
+
+    }
+
+    .header-icons{
+
+        gap:8px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Mobile Navigation Panel
+
+========================================== */
+
+.mobile-menu{
+
+    position:fixed;
+
+    top:0;
+
+    right:-100%;
+
+    width:300px;
+
+    height:100vh;
+
+    background:#ffffff;
+
+    box-shadow:-5px 0 20px rgba(0,0,0,.12);
+
+    transition:.4s ease;
+
+    z-index:2000;
+
+    overflow-y:auto;
+
+}
+
+
+
+.mobile-menu.active{
+
+    right:0;
+
+}
+
+
+
+.mobile-menu ul{
+
+    padding:100px 30px 40px;
+
+}
+
+
+
+.mobile-menu ul li{
+
+    margin-bottom:25px;
+
+}
+
+
+
+.mobile-menu ul li a{
+
+    font-size:18px;
+
+    font-weight:600;
+
+    color:var(--text-primary);
+
+}
+
+
+
+.mobile-menu-close{
+
+    position:absolute;
+
+    top:25px;
+
+    right:25px;
+
+    font-size:28px;
+
+    cursor:pointer;
+
+}
+
+
+
+/* ==========================================================
+   END OF HEADER & NAVIGATION RESPONSIVE
+
+========================================================== */
+/* ==========================================================
+   RESPONSIVE.CSS
+
+   PART 3
+
+   HERO SECTION RESPONSIVE
+
+========================================================== */
+
+
+
+/* ==========================================
+
+   Desktop (1200px and below)
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .hero-section{
+
+        padding:80px 6%;
+
+    }
+
+    .hero-container{
+
+        gap:50px;
+
+    }
+
+    .hero-title{
+
+        font-size:58px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Laptop (1024px and below)
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .hero-container{
+
+        grid-template-columns:1fr;
+
+        text-align:center;
+
+    }
+
+    .hero-left{
+
+        order:2;
+
+    }
+
+    .hero-right{
+
+        order:1;
+
+    }
+
+    .hero-title{
+
+        font-size:50px;
+
+    }
+
+    .hero-description{
+
+        max-width:700px;
+
+        margin:0 auto 30px;
+
+    }
+
+    .hero-buttons{
+
+        justify-content:center;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Tablet (768px and below)
+
+========================================== */
+
+@media (max-width:768px){
+
+    .hero-section{
+
+        padding:70px 20px;
+
+    }
+
+    .hero-title{
+
+        font-size:42px;
+
+        line-height:1.2;
+
+    }
+
+    .hero-description{
+
+        font-size:16px;
+
+    }
+
+    .hero-buttons{
+
+        flex-direction:column;
+
+        align-items:center;
+
+        gap:15px;
+
+    }
+
+    .hero-buttons button{
+
+        width:100%;
+
+        max-width:320px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Mobile (540px and below)
+
+========================================== */
+
+@media (max-width:540px){
+
+    .hero-title{
+
+        font-size:34px;
+
+    }
+
+    .hero-description{
+
+        font-size:15px;
+
+        line-height:1.8;
+
+    }
+
+    .hero-image{
+
+        max-width:320px;
+
+        margin:auto;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Small Mobile (414px and below)
+
+========================================== */
+
+@media (max-width:414px){
+
+    .hero-section{
+
+        padding:60px 15px;
+
+    }
+
+    .hero-title{
+
+        font-size:30px;
+
+    }
+
+    .hero-image{
+
+        max-width:280px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Tiny Mobile (360px and below)
+
+========================================== */
+
+@media (max-width:360px){
+
+    .hero-title{
+
+        font-size:26px;
+
+    }
+
+    .hero-description{
+
+        font-size:14px;
+
+    }
+
+    .hero-buttons button{
+
+        height:50px;
+
+        font-size:15px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Hero Floating Elements
+
+========================================== */
+
+@media (max-width:768px){
+
+    .floating-card{
+
+        transform:scale(.85);
+
+    }
+
+}
+
+
+
+@media (max-width:540px){
+
+    .floating-card{
+
+        display:none;
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   END OF HERO SECTION RESPONSIVE
+
+========================================================== */
+/* ==========================================================
+   RESPONSIVE.CSS
+
+   PART 4
+
+   AI SEARCH • MARKETPLACE CATEGORIES
+   • FLASH DEALS RESPONSIVE
+
+========================================================== */
+
+
+
+/* ==========================================
+
+   AI Search
+
+   1200px
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .ai-search-container{
+
+        max-width:900px;
+
+        margin:auto;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Search
+
+   1024px
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .ai-search-box{
+
+        flex-direction:column;
+
+        gap:18px;
+
+        padding:25px;
+
+    }
+
+    .ai-search-box input{
+
+        width:100%;
+
+    }
+
+    .ai-search-box button{
+
+        width:100%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Search
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .ai-search-section{
+
+        padding:70px 20px;
+
+    }
+
+    .ai-search-title{
+
+        font-size:34px;
+
+        text-align:center;
+
+    }
+
+    .ai-search-description{
+
+        text-align:center;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Marketplace Categories
+
+   1024px
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .categories-grid{
+
+        grid-template-columns:repeat(3,1fr);
+
+        gap:25px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Marketplace Categories
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .categories-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+        gap:20px;
+
+    }
+
+    .category-card{
+
+        padding:25px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Marketplace Categories
+
+   540px
+
+========================================== */
+
+@media (max-width:540px){
+
+    .categories-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Flash Deals
+
+   1200px
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .flash-grid{
+
+        grid-template-columns:repeat(3,1fr);
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Flash Deals
+
+   1024px
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .flash-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Flash Deals
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .flash-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .flash-header{
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+        gap:20px;
+
+    }
+
+    .countdown{
+
+        width:100%;
+
+        justify-content:center;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Flash Deals
+
+   414px
+
+========================================== */
+
+@media (max-width:414px){
+
+    .flash-card{
+
+        padding:20px;
+
+    }
+
+    .countdown{
+
+        flex-wrap:wrap;
+
+        gap:12px;
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   END OF AI SEARCH • MARKETPLACE CATEGORIES
+   • FLASH DEALS RESPONSIVE
+
+========================================================== */
+/* ==========================================================
+   RESPONSIVE.CSS
+
+   PART 5
+
+   FEATURED PRODUCTS
+   AI RECOMMENDATION
+   TRENDING PRODUCTS
+
+========================================================== */
+
+
+
+/* ==========================================
+
+   Featured Products
+
+   1200px
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .featured-grid{
+
+        grid-template-columns:repeat(3,1fr);
+
+        gap:28px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Featured Products
+
+   1024px
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .featured-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Featured Products
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .featured-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .product-buttons{
+
+        flex-direction:column;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Recommendation
+
+   1024px
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .ai-recommendation-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Recommendation
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .ai-recommendation-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .ai-recommendation-header{
+
+        text-align:center;
+
+    }
+
+    .ai-recommendation-header h2{
+
+        font-size:34px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Recommendation
+
+   540px
+
+========================================== */
+
+@media (max-width:540px){
+
+    .ai-recommendation-card{
+
+        padding:28px;
+
+    }
+
+    .ai-icon{
+
+        width:70px;
+
+        height:70px;
+
+        font-size:30px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Trending Products
+
+   1200px
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .trending-grid{
+
+        grid-template-columns:repeat(3,1fr);
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Trending Products
+
+   1024px
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .trending-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Trending Products
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .trending-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .trending-header{
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+        gap:18px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Trending Products
+
+   414px
+
+========================================== */
+
+@media (max-width:414px){
+
+    .trending-footer{
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+        gap:15px;
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   END OF FEATURED PRODUCTS
+   AI RECOMMENDATION
+   TRENDING PRODUCTS
+
+========================================================== */
+/* ==========================================================
+   RESPONSIVE.CSS
+
+   PART 6
+
+   OFFICIAL BRAND STORES
+   PREMIUM ADVERTISEMENT
+   AI SHOPPING ASSISTANT
+
+========================================================== */
+
+
+
+/* ==========================================
+
+   Brand Stores
+
+   1200px
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .brand-grid{
+
+        grid-template-columns:repeat(3,1fr);
+
+        gap:28px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Brand Stores
+
+   1024px
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .brand-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Brand Stores
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .brand-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .brand-card{
+
+        padding:30px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Advertisement Section
+
+   1200px
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .advertisement-container{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Advertisement
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .main-ad-banner{
+
+        min-height:auto;
+
+        padding:35px;
+
+    }
+
+    .main-ad-banner h2{
+
+        font-size:36px;
+
+    }
+
+    .main-ad-banner p{
+
+        font-size:16px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Advertisement
+
+   540px
+
+========================================== */
+
+@media (max-width:540px){
+
+    .main-ad-banner{
+
+        padding:25px;
+
+    }
+
+    .main-ad-banner h2{
+
+        font-size:30px;
+
+    }
+
+    .main-ad-banner button{
+
+        width:100%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Shopping Assistant
+
+   1200px
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .ai-assistant-container{
+
+        grid-template-columns:1fr;
+
+        gap:50px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Shopping Assistant
+
+   768px
+
+========================================== */
+
+@media (max-width:768px){
+
+    .ai-avatar{
+
+        width:250px;
+
+        height:250px;
+
+        font-size:90px;
+
+    }
+
+    .ai-right{
+
+        padding:30px;
+
+    }
+
+    .ai-right h2{
+
+        font-size:34px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Shopping Assistant
+
+   540px
+
+========================================== */
+
+@media (max-width:540px){
+
+    .ai-avatar{
+
+        width:200px;
+
+        height:200px;
+
+        font-size:70px;
+
+    }
+
+    .ai-actions{
+
+        flex-direction:column;
+
+    }
+
+    .ai-actions button{
+
+        width:100%;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   AI Shopping Assistant
+
+   414px
+
+========================================== */
+
+@media (max-width:414px){
+
+    .ai-right{
+
+        padding:22px;
+
+    }
+
+    .chat-bubble{
+
+        font-size:14px;
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   END OF OFFICIAL BRAND STORES
+   PREMIUM ADVERTISEMENT
+   AI SHOPPING ASSISTANT
+
+========================================================== */
+/* ==========================================================
+   RESPONSIVE.CSS
+
+   PART 7
+
+   WHY SMARTBUY
+   TESTIMONIALS
+   DOWNLOAD
+   COMMUNITY
+   FOOTER
+
+========================================================== */
+
+
+
+/* ==========================================
+
+   Why SmartBuy
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .why-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+@media (max-width:768px){
+
+    .why-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .why-statistics{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+@media (max-width:540px){
+
+    .why-statistics{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Testimonials
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .testimonials-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+@media (max-width:768px){
+
+    .testimonials-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+
+
+@media (max-width:414px){
+
+    .testimonial-card{
+
+        padding:25px;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Download Centre
+
+========================================== */
+
+@media (max-width:1200px){
+
+    .download-container{
+
+        grid-template-columns:1fr;
+
+        gap:60px;
+
+    }
+
+}
+
+
+
+@media (max-width:768px){
+
+    .download-buttons{
+
+        flex-direction:column;
+
+    }
+
+    .download-buttons button{
+
+        width:100%;
+
+    }
+
+}
+
+
+
+@media (max-width:540px){
+
+    .device-showcase{
+
+        min-height:auto;
+
+    }
+
+    .device-card{
+
+        position:relative;
+
+        margin-bottom:20px;
+
+        top:auto;
+
+        left:auto;
+
+        right:auto;
+
+        bottom:auto;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Community
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .community-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+
+
+@media (max-width:768px){
+
+    .community-stats{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Footer
+
+========================================== */
+
+@media (max-width:1024px){
+
+    .footer-grid{
+
+        grid-template-columns:repeat(2,1fr);
+
+    }
+
+}
+
+
+
+@media (max-width:768px){
+
+    .footer-grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+    .footer-bottom{
+
+        flex-direction:column;
+
+        text-align:center;
+
+    }
+
+    .footer-bottom-links{
+
+        justify-content:center;
+
+    }
+
+}
+
+
+
+@media (max-width:540px){
+
+    .payment-methods{
+
+        justify-content:center;
+
+    }
+
+    .security-badges{
+
+        justify-content:center;
+
+    }
+
+    .footer-social{
+
+        justify-content:center;
+
+    }
+
+}
+
+
+
+/* ==========================================
+
+   Back To Top Button
+
+========================================== */
+
+@media (max-width:768px){
+
+    .back-to-top{
+
+        width:50px;
+
+        height:50px;
+
+        right:20px;
+
+        bottom:20px;
+
+        font-size:18px;
+
+    }
+
+}
+
+
+
+/* ==========================================================
+   END OF RESPONSIVE.CSS
+
+========================================================== */

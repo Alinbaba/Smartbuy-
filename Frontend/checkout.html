@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Smartbuy Checkout</title>
+
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/responsive.css">
+
+</head>
+
+<body>
+
+<header>
+<h1 style="text-align:center;padding:20px;">🛒 Secure Checkout</h1>
+</header>
+
+<main class="checkout-container">
+
+    <!-- LEFT SIDE: FORM -->
+    <section class="checkout-form-section">
+
+        <h2>Shipping Details</h2>
+
+        <form id="checkout-form">
+
+            <label>Full Name</label>
+            <input type="text" placeholder="John Doe" required>
+
+            <label>Email Address</label>
+            <input type="email" placeholder="example@email.com" required>
+
+            <label>Phone Number</label>
+            <input type="tel" placeholder="+234 800 000 0000" required>
+
+            <label>Delivery Address</label>
+            <textarea placeholder="Street, City, State, Country" required></textarea>
+
+            <button type="button" id="pay-btn">
+                Pay Now
+            </button>
+
+        </form>
+
+    </section>
+
+    <!-- RIGHT SIDE: ORDER SUMMARY -->
+    <section class="order-summary">
+
+        <h2>Your Order</h2>
+
+        <div id="checkout-items">
+            <!-- Cart items will appear here -->
+        </div>
+
+        <div class="summary-box">
+
+            <div class="row">
+                <span>Subtotal</span>
+                <span id="checkout-subtotal">₦0</span>
+            </div>
+
+            <div class="row">
+                <span>Delivery</span>
+                <span>₦0</span>
+            </div>
+
+            <hr>
+
+            <div class="row total">
+                <span>Total</span>
+                <span id="checkout-total">₦0</span>
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script src="js/checkout.js"></script>
+</body>
+</html>
