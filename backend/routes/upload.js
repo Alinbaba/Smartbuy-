@@ -57,7 +57,7 @@ router.post(
 
     protect,
     
-    upload.multiple("files"),
+    upload.array("files"),
     
     uploadMultipleFiles
     );
