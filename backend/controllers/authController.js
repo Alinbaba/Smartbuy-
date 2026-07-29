@@ -123,6 +123,7 @@ exports.loginUser = async (req, res) => {
     try {
 
         const { email, phone, password } = req.body;
+        console.log(req.body);
 
         const user = await User.findOne({
 
