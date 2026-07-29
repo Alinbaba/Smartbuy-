@@ -203,6 +203,17 @@ exports.approveWithdrawal = async (req, res) => {
 
         }
 
+        if (withdrawal.status !== "processing") {
+
+    return res.status(400).json({
+
+        success: false,
+        message: "Withdrawal must be approved before completion."
+
+    });
+
+        }
+
 
         withdrawal.status = "processing";
 
@@ -370,6 +381,8 @@ exports.completeWithdrawal = async (req, res) => {
 
 
         withdrawal.status = "completed";
+        withdrawal.completedAt = new Date();
+        withdrawal.completedBy = req.user.id;
 
 
         await withdrawal.save();
