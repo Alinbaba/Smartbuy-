@@ -13,7 +13,7 @@ const {
     unfreezeWallet,
     updateBankAccount,
     getWalletSummary,
-    getWalletHistory
+    getWalletHistory,
     setWalletPin
 } = require("../controllers/walletController");
 
