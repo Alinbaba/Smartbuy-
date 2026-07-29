@@ -42,3 +42,4 @@ router.post(
     protect,
     submitKYC
 );
+module.exports = router;
