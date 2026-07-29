@@ -127,19 +127,16 @@ exports.loginUser = async (req, res) => {
 
         const user = await User.findOne({
 
-console.log("Searching for:");
-console.log({ email, phone });
+            $or: [
 
-const user = await User.findOne({
-    $or: [
-        { email: email },
-        { phone: phone }
-    ]
-});
+                { email: email },
 
-console.log("Found user:");
-console.log(user ? user.email : "No user");
-            
+                { phone: phone }
+
+            ]
+
+        });
+        
         if (!user) {
 
     return res.status(401).json({
@@ -165,10 +162,8 @@ if (!user.isActive) {
     });
 
 }
-        console.log("isActive:", user.isActive);
 // Check if account is temporarily locked
-console.log("lockUntil:", user.lockUntil);
-console.log("Current Time:", new Date());
+
         if (user.lockUntil && user.lockUntil > Date.now()) {
 
            return res.status(403).json({
@@ -180,9 +175,6 @@ console.log("Current Time:", new Date());
     });
 
 }
-        console.log("Password received:", password);
-console.log("Stored hash:", user.password);
-        console.log("Password Match:", isMatch);
 
         const isMatch = await user.matchPassword(password);
 
