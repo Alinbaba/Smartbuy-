@@ -136,6 +136,7 @@ exports.loginUser = async (req, res) => {
             ]
 
         });
+        console.log("User found:", user);
         
         if (!user) {
 
@@ -162,8 +163,10 @@ if (!user.isActive) {
     });
 
 }
+        console.log("isActive:", user.isActive);
 // Check if account is temporarily locked
-
+console.log("lockUntil:", user.lockUntil);
+console.log("Current Time:", new Date());
         if (user.lockUntil && user.lockUntil > Date.now()) {
 
            return res.status(403).json({
@@ -175,6 +178,9 @@ if (!user.isActive) {
     });
 
 }
+        console.log("Password received:", password);
+console.log("Stored hash:", user.password);
+        console.log("Password Match:", isMatch);
 
         const isMatch = await user.matchPassword(password);
 
