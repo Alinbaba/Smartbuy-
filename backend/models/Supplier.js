@@ -281,3 +281,6 @@ notes: {
     trim: true
 
 },
+});
+
+module.exports = mongoose.model("Supplier", supplierSchema);
