@@ -100,7 +100,7 @@ const purchaseOrderSchema = new mongoose.Schema({
 
             }
 
-        }
+        },
 
     ],
     // ==================================================
