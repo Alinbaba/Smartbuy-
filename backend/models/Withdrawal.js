@@ -97,14 +97,11 @@ withdrawalId: {
         enum: [
 
             "pending",
-
             "processing",
-
             "completed",
-
             "failed",
-
-            "cancelled"
+            "cancelled",
+            "rejected"
 
         ],
         default: "pending"
@@ -198,7 +195,42 @@ approvedAt: {
 
 },
 
+completedBy: {
 
+    type: mongoose.Schema.Types.ObjectId,
+
+    ref: "User",
+
+    default: null
+
+},
+
+completedAt: {
+
+    type: Date,
+
+    default: null
+
+},
+
+rejectedBy: {
+
+    type: mongoose.Schema.Types.ObjectId,
+
+    ref: "User",
+
+    default: null
+
+},
+
+rejectedAt: {
+
+    type: Date,
+
+    default: null
+
+},
+  
 rejectionReason: {
 
     type: String,
