@@ -36,7 +36,7 @@ app.use("/api/wishlist", require("./routes/wishlist"));
 app.use("/api/coupons", require("./routes/coupon"));
 app.use("/api/inventory", require("./routes/inventory"));
 app.use("/api/warehouses",require("./routes/warehouse"));
-app.use("/api/suppliers", require("./routes/suppliers"));
+app.use("/api/suppliers", require("./routes/supplier"));
 app.use("/api/purchase-orders", require("./routes/purchaseOrder"));
 app.use("/api/categories", require("./routes/category"));
 app.use("/api/brands", require("./routes/brand"));
