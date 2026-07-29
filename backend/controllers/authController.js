@@ -127,17 +127,19 @@ exports.loginUser = async (req, res) => {
 
         const user = await User.findOne({
 
-            $or: [
+console.log("Searching for:");
+console.log({ email, phone });
 
-                { email: email },
+const user = await User.findOne({
+    $or: [
+        { email: email },
+        { phone: phone }
+    ]
+});
 
-                { phone: phone }
-
-            ]
-
-        });
-        console.log("User found:", user);
-        
+console.log("Found user:");
+console.log(user ? user.email : "No user");
+            
         if (!user) {
 
     return res.status(401).json({
