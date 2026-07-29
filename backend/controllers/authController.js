@@ -263,22 +263,6 @@ await user.save();
     }
 
 };
-
-console.log("=== LOGIN REQUEST ===");
-console.log(req.body);
-
-const { email, phone, password } = req.body;
-
-console.log("Searching for:", email, phone);
-
-const user = await User.findOne({
-  $or: [
-    { email },
-    { phone }
-  ]
-});
-
-console.log("Found user:", user ? user.email : "No user");
 // ==========================
 // Get User Profile
 // ==========================
