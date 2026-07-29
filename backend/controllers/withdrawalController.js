@@ -238,6 +238,49 @@ exports.approveWithdrawal = async (req, res) => {
     }
 
 };
+
+
+// =====================================
+// Reject Withdrawal
+// =====================================
+
+exports.rejectWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal = await Withdrawal.findById(req.params.id);
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+                success: false,
+                message: "Withdrawal not found."
+            });
+
+        }
+
+        withdrawal.status = "rejected";
+        withdrawal.rejectedBy = req.user.id;
+        withdrawal.rejectedAt = new Date();
+
+        await withdrawal.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Withdrawal rejected successfully.",
+            withdrawal
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
+
+};
 // =====================================
 // Complete Withdrawal
 // =====================================
