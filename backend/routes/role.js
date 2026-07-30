@@ -5,11 +5,13 @@ const router = express.Router();
 const {
     createRole,
     getRoles,
-    getRole,
+    getRoleById,
     updateRole,
-    deleteRole
+    deleteRole,
+    assignPermissions,
+    getRolePermissions,
+    clearPermissions
 } = require("../controllers/roleController");
-
 const { protect } = require("../middleware/authMiddleware");
 
 // ======================================
