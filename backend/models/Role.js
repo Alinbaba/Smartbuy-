@@ -20,6 +20,16 @@ const roleSchema = new mongoose.Schema({
         default: ""
     },
 
+    // ==================================================
+// Role Priority
+// Higher number = higher authority
+// ==================================================
+
+   priority: {
+      type: Number,
+      default: 1
+},
+
     // ======================================
     // Permissions
     // ======================================
@@ -92,6 +102,16 @@ const roleSchema = new mongoose.Schema({
         default: false
     },
 
+// ==================================================
+// System Role
+// Prevents important roles from being deleted
+// ==================================================
+
+    isSystemRole: {
+       type: Boolean,
+       default: false
+},
+    
     // ======================================
     // Is role active?
     // ======================================
