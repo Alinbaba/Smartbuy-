@@ -3,11 +3,16 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const { errorHandler } = require("./middleware/errorHandler");
 const connectDB = require("./config/db");
+const seedRoles = require("./config/seedRoles");
 
 dotenv.config();
 
 connectDB();
+// ==================================================
+// Create Default SmartBuy Roles
+// ==================================================
 
+seedRoles();
 const app = express();
 
 // ==========================
