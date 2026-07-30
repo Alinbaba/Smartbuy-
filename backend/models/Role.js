@@ -30,13 +30,13 @@ const roleSchema = new mongoose.Schema({
       default: 1
 },
 
-    // ======================================
-    // Permissions
-    // ======================================
-    permissions: [{
-        type: String,
-        trim: true
-    }],
+    // ==================================================
+   // Permissions Assigned To This Role
+   // ==================================================
+   permissions: [{
+       type: mongoose.Schema.Types.ObjectId,
+       ref: "Permission"
+}],
 
     // ======================================
     // Dashboard this role uses
