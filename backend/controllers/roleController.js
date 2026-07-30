@@ -1,5 +1,5 @@
 const Role = require("../models/Role");
-
+const Permission = require("../models/Permission");
 // ======================================
 // Create Role
 // ======================================
@@ -203,6 +203,75 @@ exports.deleteRole = async (req, res) => {
 
             success: true,
             message: "Role deleted successfully."
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+            message: error.message
+
+        });
+
+    }
+
+};
+// ==================================================
+//>>> Assign Permissions To A Role
+// ==================================================
+
+exports.assignPermissions = async (req, res) => {
+
+    try {
+
+        const { permissions } = req.body;
+
+        const role = await Role.findById(req.params.id);
+
+        if (!role) {
+
+            return res.status(404).json({
+
+                success: false,
+                message: "Role not found."
+
+            });
+
+        }
+
+        // Validate all permission IDs
+
+        const permissionCount = await Permission.countDocuments({
+
+            _id: { $in: permissions }
+
+        });
+
+        if (permissionCount !== permissions.length) {
+
+            return res.status(400).json({
+
+                success: false,
+                message: "One or more permission IDs are invalid."
+
+            });
+
+        }
+
+        role.permissions = permissions;
+
+        await role.save();
+
+        const updatedRole = await Role.findById(role._id)
+            .populate("permissions");
+
+        res.status(200).json({
+
+            success: true,
+            message: "Permissions assigned successfully.",
+            role: updatedRole
 
         });
 
