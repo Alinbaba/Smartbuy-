@@ -37,7 +37,7 @@ router.get("/summary", protect, getTransactionSummary);
 router.get(
     "/",
     protect,
-    authorize("admin"),
+    authorize("payments.view"),
     getAllTransactions
 );
 
@@ -45,7 +45,7 @@ router.get(
 router.get(
     "/report",
     protect,
-    authorize("admin"),
+    authorize("payments.view"),
     getTransactionReport
 );
 
@@ -53,7 +53,7 @@ router.get(
 router.put(
     "/:id/status",
     protect,
-    authorize("admin"),
+    authorize("payments.manage"),
     updateTransactionStatus
 );
 
@@ -61,10 +61,9 @@ router.put(
 router.delete(
     "/:id",
     protect,
-    authorize("admin"),
+    authorize("payments.manage"),
     deleteTransaction
 );
-
 // Get Transaction By ID
 router.get(
     "/:id",
