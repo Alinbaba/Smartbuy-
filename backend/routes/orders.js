@@ -30,8 +30,8 @@ const {
 // Authentication Middleware
 // ======================================================
 
-const { protect, authorize } = require("../middleware/authMiddleware");
-
+const { protect } = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authorize");
 // ======================================================
 // Order Routes
 // ======================================================
@@ -64,7 +64,7 @@ router.get(
 router.get(
     "/analytics/dashboard",
     protect,
-    authorize("admin", "super-admin"),
+    authorize("analytics.view"),
     getOrderAnalytics
 );
 
@@ -81,7 +81,7 @@ router.get(
 router.get(
     "/",
     protect,
-    authorize("admin", "super-admin"),
+    authorize("orders.view"),
     getAllOrders
 );
 
