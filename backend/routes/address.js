@@ -32,11 +32,9 @@ const {
 // Import Authentication Middleware
 // ======================================================
 
-const {
+const { protect} = require("../middleware/authMiddleware");
+const { authorize} = require("../middleware/authMiddleware");
 
-    protect,
-    authorize
-} = require("../middleware/authMiddleware");
 // ======================================================
 // Customer Address Routes
 // ======================================================
