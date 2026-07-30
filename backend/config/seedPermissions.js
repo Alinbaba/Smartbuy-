@@ -18,7 +18,14 @@ const seedPermissions = async () => {
 
             if (!exists) {
 
-                await Permission.create(permission);
+                await Permission.create({
+    name: `${permission.module}.${permission.action}`,
+    module: permission.module,
+    action: permission.action,
+    description: permission.description,
+    isSystemPermission: true,
+    isActive: true
+});
 
                 console.log(
                     `✅ Permission created: ${permission.module}.${permission.action}`
