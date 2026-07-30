@@ -46,6 +46,7 @@ app.use("/api/transactions", require("./routes/transaction"));
 app.use("/api/withdrawals", require("./routes/withdrawal"));
 app.use("/api/kyc", require("./routes/kyc"));
 app.use("/api/audit-logs", require("./routes/auditLog"));
+app.use("/api/roles", require("./routes/role"));
 // ==========================
 // Home Route
 // ==========================
