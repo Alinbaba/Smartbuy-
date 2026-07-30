@@ -13,7 +13,7 @@ const {
     clearPermissions
 } = require("../controllers/roleController");
 const { protect } = require("../middleware/authMiddleware");
-
+const { authorize } = require("../middleware/authorize");
 // ======================================
 // Role Routes
 // ======================================
