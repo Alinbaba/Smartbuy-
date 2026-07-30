@@ -14,7 +14,7 @@ connectDB();
 // ==================================================
 
 seedRoles();
-seedPermission();
+seedPermissions();
 const app = express();
 
 // ==========================
