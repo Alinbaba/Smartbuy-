@@ -32,8 +32,8 @@ const {
 // Import Authentication Middleware
 // ======================================================
 
-const { protect} = require("../middleware/authMiddleware");
-const { authorize} = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authorize");
 
 // ======================================================
 // Customer Address Routes
@@ -98,7 +98,7 @@ router.delete(
 router.get(
     "/admin/all",
     protect,
-    authorize("admin", "super-admin"),
+    authorize("user.view"),
     getAllAddresses
 );
 
