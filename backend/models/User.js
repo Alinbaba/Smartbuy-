@@ -144,7 +144,7 @@ loginDevices: [{
     ip: String,
     location: String,
     lastLogin: Date
-}]
+}],
 
     avatar: {
         type: String,
