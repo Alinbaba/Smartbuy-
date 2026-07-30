@@ -33,4 +33,17 @@ router.put("/:id", protect, updateRole);
 // Delete a role
 router.delete("/:id", protect, deleteRole);
 
+// ==================================================
+// Role Permission Management
+// ==================================================
+
+// Assign permissions to a role
+router.put("/:id/permissions", assignPermissions);
+
+// Get role with all permissions
+router.get("/:id/permissions", getRolePermissions);
+
+// Remove all permissions from a role
+router.delete("/:id/permissions", clearPermissions);
+
 module.exports = router;
