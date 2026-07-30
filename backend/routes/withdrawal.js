@@ -16,14 +16,8 @@ const {
 
 } = require("../controllers/withdrawalController");
 
-
-const {
-
-    protect,
-
-    authorize
-
-} = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authorize");
 // =====================================
 // User Withdrawal Routes
 // =====================================
