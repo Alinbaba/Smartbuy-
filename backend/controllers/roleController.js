@@ -287,3 +287,90 @@ exports.assignPermissions = async (req, res) => {
     }
 
 };
+
+// ==================================================
+// >>>Get Role With Permissions
+// ==================================================
+
+exports.getRolePermissions = async (req, res) => {
+
+    try {
+
+        const role = await Role.findById(req.params.id)
+            .populate("permissions");
+
+        if (!role) {
+
+            return res.status(404).json({
+
+                success: false,
+                message: "Role not found."
+
+            });
+
+        }
+
+        res.status(200).json({
+
+            success: true,
+            role
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ==================================================
+// >>>Remove All Permissions From Role
+// ==================================================
+
+exports.clearPermissions = async (req, res) => {
+
+    try {
+
+        const role = await Role.findById(req.params.id);
+
+        if (!role) {
+
+            return res.status(404).json({
+
+                success: false,
+                message: "Role not found."
+
+            });
+
+        }
+
+        role.permissions = [];
+
+        await role.save();
+
+        res.status(200).json({
+
+            success: true,
+            message: "All permissions removed successfully."
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+            message: error.message
+
+        });
+
+    }
+
+};
