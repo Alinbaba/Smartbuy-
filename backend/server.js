@@ -4,6 +4,7 @@ const cors = require("cors");
 const { errorHandler } = require("./middleware/errorHandler");
 const connectDB = require("./config/db");
 const seedRoles = require("./config/seedRoles");
+const seedPermissions = require("./config/seedPermissions");
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ connectDB();
 // ==================================================
 
 seedRoles();
+seedPermission();
 const app = express();
 
 // ==========================
