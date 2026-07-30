@@ -1,24 +1,10 @@
 const mongoose = require("mongoose");
 
-// ======================================================
-// Role Schema
-// This model stores all user roles in the SmartBuy system.
-// Examples:
-// - Customer
-// - Seller
-// - Super Admin
-// - AI Admin
-// - Warehouse Staff
-// - Logistics Admin
-// ======================================================
-
 const roleSchema = new mongoose.Schema({
 
-    // ==================================================
+    // ======================================
     // Role Name
-    // Must be unique.
-    // Example: "customer", "super-admin"
-    // ==================================================
+    // ======================================
     name: {
         type: String,
         required: true,
@@ -26,96 +12,96 @@ const roleSchema = new mongoose.Schema({
         trim: true
     },
 
-    // ==================================================
-    // Role Description
-    // Short explanation of the role.
-    // ==================================================
+    // ======================================
+    // Description
+    // ======================================
     description: {
         type: String,
         default: ""
     },
 
-    // ==================================================
-    // Department
-    // Helps group administrative roles.
-    // Example:
-    // Finance
-    // Logistics
-    // Warehouse
-    // AI
-    // Customer Care
-    // ==================================================
-    department: {
-        type: String,
-        default: ""
-    },
-
-    // ==================================================
-    // Role Level
-    // Used for role hierarchy.
-    // Higher number = Higher authority.
-    // Example:
-    // Customer = 1
-    // Seller = 30
-    // Admin = 80
-    // Super Admin = 100
-    // ==================================================
-    level: {
-        type: Number,
-        default: 1
-    },
-
-    // ==================================================
+    // ======================================
     // Permissions
-    // Stores permission names.
-    // We are keeping this as String to avoid breaking the
-    // current deployment. We can migrate later if needed.
-    // ==================================================
+    // ======================================
     permissions: [{
-        type: String
+        type: String,
+        trim: true
     }],
 
-    // ==================================================
-    // Active Status
-    // Allows a role to be disabled without deleting it.
-    // ==================================================
-    isActive: {
-        type: Boolean,
-        default: true
+    // ======================================
+    // Dashboard this role uses
+    // ======================================
+    dashboard: {
+        type: String,
+        default: "default"
     },
 
-    // ==================================================
-    // System Role
-    // Prevents important roles from accidental deletion.
-    // Example:
-    // Super Admin
-    // Customer
-    // ==================================================
-    isSystemRole: {
+    // ======================================
+    // Can this role manage users?
+    // ======================================
+    canManageUsers: {
         type: Boolean,
         default: false
     },
 
-    // ==================================================
-    // Editable
-    // If false, the role cannot be edited.
-    // ==================================================
-    editable: {
+    // ======================================
+    // Can this role manage products?
+    // ======================================
+    canManageProducts: {
+        type: Boolean,
+        default: false
+    },
+
+    // ======================================
+    // Can this role manage orders?
+    // ======================================
+    canManageOrders: {
+        type: Boolean,
+        default: false
+    },
+
+    // ======================================
+    // Can this role manage payments?
+    // ======================================
+    canManagePayments: {
+        type: Boolean,
+        default: false
+    },
+
+    // ======================================
+    // Can this role manage warehouses?
+    // ======================================
+    canManageWarehouse: {
+        type: Boolean,
+        default: false
+    },
+
+    // ======================================
+    // Can this role view analytics?
+    // ======================================
+    canViewAnalytics: {
+        type: Boolean,
+        default: false
+    },
+
+    // ======================================
+    // Can this role use AI features?
+    // ======================================
+    canUseAI: {
+        type: Boolean,
+        default: false
+    },
+
+    // ======================================
+    // Is role active?
+    // ======================================
+    isActive: {
         type: Boolean,
         default: true
     }
 
 }, {
-
-    // Automatically create:
-    // createdAt
-    // updatedAt
     timestamps: true
-
 });
-
-// ======================================================
-// Export Role Model
-// ======================================================
 
 module.exports = mongoose.model("Role", roleSchema);
