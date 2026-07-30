@@ -86,7 +86,7 @@ exports.getRoles = async (req, res) => {
 // Get Single Role
 // ======================================
 
-exports.getRole = async (req, res) => {
+exports.getRoleById = async (req, res) => {
 
     try {
 
