@@ -17,33 +17,80 @@ const { authorize } = require("../middleware/authorize");
 // ======================================
 // Role Routes
 // ======================================
-
-// Create a new role
-router.post("/", protect, createRole);
-
-// Get all roles
-router.get("/", protect, getRoles);
-
-// Get a single role
-router.get("/:id", protect, getRole);
-
-// Update a role
-router.put("/:id", protect, updateRole);
-
-// Delete a role
-router.delete("/:id", protect, deleteRole);
+router.post(
+    "/",
+    protect,
+    authorize("roles.manage"),
+    createRole
+);
 
 // ==================================================
-// Role Permission Management
+// Get All Roles
 // ==================================================
+router.get(
+    "/",
+    protect,
+    authorize("roles.view"),
+    getRoles
+);
 
-// Assign permissions to a role
-router.put("/:id/permissions", assignPermissions);
+// ==================================================
+// Get Single Role
+// ==================================================
+router.get(
+    "/:id",
+    protect,
+    authorize("roles.view"),
+    getRoleById
+);
 
-// Get role with all permissions
-router.get("/:id/permissions", getRolePermissions);
+// ==================================================
+// Update Role
+// ==================================================
+router.put(
+    "/:id",
+    protect,
+    authorize("roles.manage"),
+    updateRole
+);
 
-// Remove all permissions from a role
-router.delete("/:id/permissions", clearPermissions);
+// ==================================================
+// Delete Role
+// ==================================================
+router.delete(
+    "/:id",
+    protect,
+    authorize("roles.manage"),
+    deleteRole
+);
 
+// ==================================================
+// Assign Permissions To Role
+// ==================================================
+router.put(
+    "/:id/permissions",
+    protect,
+    authorize("roles.manage"),
+    assignPermissions
+);
+
+// ==================================================
+// Get Role Permissions
+// ==================================================
+router.get(
+    "/:id/permissions",
+    protect,
+    authorize("roles.view"),
+    getRolePermissions
+);
+
+// ==================================================
+// Remove All Permissions
+// ==================================================
+router.delete(
+    "/:id/permissions",
+    protect,
+    authorize("roles.manage"),
+    clearPermissions
+);
 module.exports = router;
