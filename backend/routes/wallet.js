@@ -87,7 +87,7 @@ router.put(
 
     protect,
 
-    authorize("admin"),
+    authorize("payments.manage"),
 
     creditWallet
 
@@ -102,7 +102,7 @@ router.put(
 
     protect,
 
-    authorize("admin"),
+    authorize("paymens.manage"),
 
     debitWallet
 
@@ -120,7 +120,7 @@ router.put(
 
     protect,
 
-    authorize("admin"),
+    authorize("payments.manage"),
 
     freezeWallet
 
@@ -135,7 +135,7 @@ router.put(
 
     protect,
 
-    authorize("admin"),
+    authorize("payments.manage"),
 
     unfreezeWallet
 
