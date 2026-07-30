@@ -109,7 +109,7 @@ const roleSchema = new mongoose.Schema({
 
     isSystemRole: {
        type: Boolean,
-       default: false
+       default: true
 },
     
     // ======================================
