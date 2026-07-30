@@ -86,7 +86,7 @@ router.get(
 
     protect,
 
-    authorize("admin"),
+    authorize("payments.view"),
 
     getAllWithdrawals
 
@@ -101,7 +101,7 @@ router.put(
 
     protect,
 
-    authorize("admin"),
+    authorize("payments.manage"),
 
     approveWithdrawal
 
@@ -116,7 +116,7 @@ router.put(
 
     protect,
 
-    authorize("admin"),
+    authorize("payments.manage"),
 
     completeWithdrawal
 
@@ -131,7 +131,7 @@ router.put(
 
     protect,
 
-    authorize("admin"),
+    authorize("payments.manage"),
 
     rejectWithdrawal
 
