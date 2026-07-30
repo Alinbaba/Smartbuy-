@@ -36,7 +36,8 @@ const {
 // Authentication Middleware
 // ======================================================
 
-const { protect, authorize } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authorize");
 // ======================================================
 // Create Payment
 // Customer creates payment for an order
@@ -106,7 +107,7 @@ router.get(
 router.get(
 
     "/analytics/dashboard",
-protect, authorize("admin", "super-admin"),
+protect, authorize("payments.view"),
   getPaymentAnalytics
 
 );
@@ -117,7 +118,7 @@ protect, authorize("admin", "super-admin"),
 router.put(
     "/:id/status",
     protect,
-    authorize("admin", "super-admin"),
+    authorize("payments.approve"),
     updatePaymentStatus
 );
 
@@ -129,7 +130,7 @@ router.put(
 router.put(
 
     "/:id/refund",
-  protect, authorize("admin", "super-admin"),
+  protect, authorize("payments.approve"),
   processRefund
 
 );
@@ -139,7 +140,7 @@ router.put(
 // ======================================================
 
 router.get( "/",
-protect, authorize("admin", "super-admin"),
+protect, authorize("payments.view"),
  getAllPayments
 
 );
