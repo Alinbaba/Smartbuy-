@@ -33,6 +33,119 @@ const userSchema = new mongoose.Schema({
         required: true
     },
 
+    // ==================================================
+// Login Provider
+// ==================================================
+
+loginProvider: {
+    type: String,
+    enum: [
+        "email",
+        "phone",
+        "google",
+        "facebook",
+        "apple",
+        "linkedin",
+        "x"
+    ],
+    default: "email"
+},
+
+// ==================================================
+// Social Login IDs
+// ==================================================
+
+googleId: {
+    type: String,
+    default: null
+},
+
+facebookId: {
+    type: String,
+    default: null
+},
+
+appleId: {
+    type: String,
+    default: null
+},
+
+linkedinId: {
+    type: String,
+    default: null
+},
+
+xId: {
+    type: String,
+    default: null
+},
+
+// ==================================================
+// Account Status
+// ==================================================
+
+status: {
+    type: String,
+    enum: [
+        "pending",
+        "active",
+        "inactive",
+        "suspended",
+        "blocked",
+        "deleted"
+    ],
+    default: "active"
+},
+
+// ==================================================
+// Security Tokens
+// ==================================================
+
+passwordResetToken: {
+    type: String,
+    default: ""
+},
+
+passwordResetExpires: {
+    type: Date
+},
+
+emailVerificationToken: {
+    type: String,
+    default: ""
+},
+
+refreshToken: {
+    type: String,
+    default: ""
+},
+
+// ==================================================
+// Activity Tracking
+// ==================================================
+
+lastSeen: {
+    type: Date,
+    default: Date.now
+},
+
+lastPasswordChange: {
+    type: Date
+},
+
+// ==================================================
+// Login Devices
+// ==================================================
+
+loginDevices: [{
+    device: String,
+    browser: String,
+    os: String,
+    ip: String,
+    location: String,
+    lastLogin: Date
+}]
+
     avatar: {
         type: String,
         default: ""
