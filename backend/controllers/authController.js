@@ -180,7 +180,12 @@ console.log("User:", user);
 console.log("Password entered:", password);
 console.log("Password from database:", user ? user.password : null);
         
-        const isMatch = await user.matchPassword(password);
+        console.log("Password entered:", password);
+console.log("Password in database:", user.password);
+
+const isMatch = await user.matchPassword(password);
+
+console.log("Password matched:", isMatch);
 
         if (!isMatch) {
 
