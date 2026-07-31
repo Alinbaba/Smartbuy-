@@ -5,7 +5,7 @@ const { errorHandler } = require("./middleware/errorHandler");
 const connectDB = require("./config/db");
 const seedRoles = require("./config/seedRoles");
 const seedPermissions = require("./config/seedPermissions");
-
+const adminRoutes = require("./routes/admin");
 dotenv.config();
 
 connectDB();
@@ -24,11 +24,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-
 // ==========================
 // API Routes
 // ==========================
-
+app.use("/api/admin", require(”./routes/admin”));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/products", require("./routes/products"));
 app.use("/api/upload", require("./routes/upload"));
