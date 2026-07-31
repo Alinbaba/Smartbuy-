@@ -1,8 +1,19 @@
-const express = require('express');
-const { getDashboard, createSubAdmin } = require('../controllers/adminController');
+// ======================================================
+// SmartBuy Admin Routes
+// ======================================================
+
+const express = require("express");
+
 const router = express.Router();
 
-router.get('/dashboard', getDashboard);
-router.post('/subadmin', createSubAdmin);
+const adminController = require("../controllers/adminController");
+// ======================================================
+// Transaction Export
+// ======================================================
+
+router.get(
+    "/transactions/export",
+    adminController.exportTransactions
+);
 
 module.exports = router;
