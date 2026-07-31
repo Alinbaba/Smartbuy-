@@ -126,6 +126,10 @@ exports.loginUser = async (req, res) => {
 
         const { email, phone, password } = req.body;
 
+console.log(req.body);
+console.log("Email:", email);
+console.log("Phone:", phone);
+        
         const user = await User.findOne({
 
             $or: [
@@ -137,6 +141,7 @@ exports.loginUser = async (req, res) => {
             ]
 
         });
+        console.log(user ? user.email : "No user found");
         
         if (!user) {
 
