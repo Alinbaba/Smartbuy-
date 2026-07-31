@@ -130,17 +130,20 @@ console.log(req.body);
 console.log("Email:", email);
 console.log("Phone:", phone);
         
-        const user = await User.findOne({
+        console.log("Searching for:");
+console.log("Email:", email);
+console.log("Phone:", phone);
 
-            $or: [
+let user;
 
-                { email: email },
+if (email) {
+    user = await User.findOne({ email: email.toLowerCase().trim() });
+} else if (phone) {
+    user = await User.findOne({ phone: phone.trim() });
+}
 
-                { phone: phone }
-
-            ]
-
-        });
+console.log("Found user:");
+console.log(user);
         console.log(user ? user.email : "No user found");
         
         if (!user) {
