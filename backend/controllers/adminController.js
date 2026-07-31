@@ -23,6 +23,7 @@ const Wishlist = require("../models/Wishlist");
 const Cart = require("../models/Cart");
 const Notification = require("../models/Notification");
 const KYC = require("../models/KYC");
+const exportService = require("../services/exportService");
 // ======================================================
 // Dashboard Overview
 // ======================================================
@@ -4622,6 +4623,309 @@ exports.exportTransactionsCSV = async (req, res) => {
             message: error.message
 
         });
+
+    }
+
+};
+
+// ======================================================
+// Export Transactions (CSV / Excel / PDF)
+// ======================================================
+
+exports.exportTransactions = async (req, res) => {
+
+    try {
+
+        const {
+
+            format = "csv",
+            status,
+            type,
+            paymentMethod,
+            user,
+            startDate,
+            endDate,
+            minAmount,
+            maxAmount
+
+        } = req.query;
+
+
+        // ==================================================
+        // Build Filters
+        // ==================================================
+
+        const filter = {};
+
+
+        if (status) {
+
+            filter.status = status;
+
+        }
+
+
+        if (type) {
+
+            filter.type = type;
+
+        }
+
+
+        if (paymentMethod) {
+
+            filter.paymentMethod = paymentMethod;
+
+        }
+
+
+        if (user) {
+
+            filter.user = user;
+
+        }
+
+
+        if (minAmount || maxAmount) {
+
+            filter.amount = {};
+
+            if (minAmount) {
+
+                filter.amount.$gte = Number(minAmount);
+
+            }
+
+
+            if (maxAmount) {
+
+                filter.amount.$lte = Number(maxAmount);
+
+            }
+
+        }
+
+
+        if (startDate || endDate) {
+
+            filter.createdAt = {};
+
+            if (startDate) {
+
+                filter.createdAt.$gte =
+                    new Date(startDate);
+
+            }
+
+
+            if (endDate) {
+
+                filter.createdAt.$lte =
+                    new Date(endDate);
+
+            }
+
+        }
+
+
+        // ==================================================
+        // Get Transactions
+        // ==================================================
+
+        const transactions = await Transaction.find(filter)
+
+            .populate(
+                "user",
+                "fullName email"
+            )
+
+            .populate(
+                "order",
+                "orderNumber"
+            )
+
+            .sort({
+                createdAt: -1
+            });
+
+
+
+        // ==================================================
+        // CSV Export
+        // ==================================================
+
+        if (format === "csv") {
+
+
+            const fields = [
+
+                "reference",
+                "amount",
+                "type",
+                "status",
+                "paymentMethod",
+                "createdAt"
+
+            ];
+
+
+            const csv =
+                exportService.generateCSV(
+                    transactions,
+                    fields
+                );
+
+
+            res.header(
+                "Content-Type",
+                "text/csv"
+            );
+
+
+            res.attachment(
+                "transactions.csv"
+            );
+
+
+            return res.send(csv);
+
+        }
+
+
+
+        // ==================================================
+        // Excel Export
+        // ==================================================
+
+        if (format === "excel") {
+
+
+            const workbook =
+                await exportService.generateExcel(
+
+                    "Transactions",
+
+                    [
+
+                        {
+                            header: "Reference",
+                            key: "reference"
+                        },
+
+                        {
+                            header: "Amount",
+                            key: "amount"
+                        },
+
+                        {
+                            header: "Type",
+                            key: "type"
+                        },
+
+                        {
+                            header: "Status",
+                            key: "status"
+                        }
+
+                    ],
+
+                    transactions
+
+                );
+
+
+            res.setHeader(
+
+                "Content-Type",
+
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+            );
+
+
+            res.setHeader(
+
+                "Content-Disposition",
+
+                "attachment; filename=transactions.xlsx"
+
+            );
+
+
+            return workbook.xlsx.write(res);
+
+        }
+
+
+
+        // ==================================================
+        // PDF Export
+        // ==================================================
+
+        if (format === "pdf") {
+
+
+            const pdf =
+                exportService.generatePDF(
+
+                    "SmartBuy Transaction Report",
+
+                    transactions
+
+                );
+
+
+            res.setHeader(
+
+                "Content-Type",
+
+                "application/pdf"
+
+            );
+
+
+            res.setHeader(
+
+                "Content-Disposition",
+
+                "attachment; filename=transactions.pdf"
+
+            );
+
+
+            pdf.pipe(res);
+
+            pdf.end();
+
+
+            return;
+
+        }
+
+
+
+        return res.status(400).json({
+
+            success: false,
+
+            message:
+            "Invalid export format. Use csv, excel, or pdf."
+
+        });
+
+
+
+    } catch (error) {
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
 
     }
 
