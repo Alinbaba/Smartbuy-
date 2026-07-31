@@ -848,3 +848,168 @@ exports.blockUser = async (req, res) => {
     }
 
 };
+
+// ======================================================
+// Unblock User
+// ======================================================
+
+exports.unblockUser = async (req, res) => {
+
+    try {
+
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "User not found."
+
+            });
+
+        }
+
+        // ======================================================
+// Change User Role
+// ======================================================
+
+exports.changeUserRole = async (req, res) => {
+
+    try {
+
+        const { role } = req.body;
+
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "User not found."
+
+            });
+
+        }
+
+        // ==================================================
+        // Allowed Roles
+        // ==================================================
+
+        const allowedRoles = [
+
+            "customer",
+            "seller",
+            "customer-care",
+            "finance-admin",
+            "advertising-admin",
+            "security-admin",
+            "warehouse-admin",
+            "logistics-admin",
+            "vendor-manager",
+            "ai-admin",
+            "admin",
+            "super-admin"
+
+        ];
+
+        if (!allowedRoles.includes(role)) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Invalid role."
+
+            });
+
+        }
+
+        // ==================================================
+        // Update Role
+        // ==================================================
+
+        user.role = role;
+
+        await user.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "User role updated successfully.",
+
+            user
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+    // ======================================================
+// Delete User
+// ======================================================
+
+exports.deleteUser = async (req, res) => {
+
+    try {
+
+        const user = await User.findById(req.params.id);
+
+
+        if (!user) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "User not found."
+
+            });
+
+        }
+
+
+        // ==================================================
+        // Delete User
+        // ==================================================
+
+        await user.deleteOne();
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "User deleted successfully."
+
+        });
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
