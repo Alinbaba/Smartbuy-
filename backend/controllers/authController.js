@@ -180,13 +180,14 @@ console.log("User:", user);
 console.log("Password entered:", password);
 console.log("Password from database:", user ? user.password : null);
         
-        console.log("Password entered:", password);
-console.log("Password in database:", user.password);
+        const bcrypt = require("bcryptjs");
 
-const isMatch = await user.matchPassword(password);
+console.log("Password entered:", password);
+console.log("Password hash:", user.password);
 
-console.log("Password matched:", isMatch);
+const isMatch = await bcrypt.compare(password, user.password);
 
+console.log("Match result:", isMatch);
         if (!isMatch) {
 
     user.loginAttempts += 1;
