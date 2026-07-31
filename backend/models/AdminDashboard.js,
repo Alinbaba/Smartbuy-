@@ -1,0 +1,157 @@
+// ======================================================
+// SmartBuy Enterprise Admin Dashboard Model
+// ======================================================
+
+const mongoose = require("mongoose");
+
+const adminDashboardSchema = new mongoose.Schema({
+
+    // ==================================================
+    // Dashboard Owner
+    // ==================================================
+
+    admin: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+
+    // ==================================================
+    // Dashboard Type
+    // ==================================================
+
+    dashboardType: {
+        type: String,
+        enum: [
+            "super-admin",
+            "finance-admin",
+            "customer-care",
+            "advertising-admin",
+            "security-admin",
+            "logistics-admin",
+            "warehouse-admin",
+            "vendor-manager",
+            "ai-admin"
+        ],
+        required: true
+    },
+
+    // ==================================================
+    // Dashboard Status
+    // ==================================================
+
+    status: {
+        type: String,
+        enum: [
+            "active",
+            "inactive"
+        ],
+        default: "active"
+    },
+
+    // ==================================================
+    // Statistics
+    // ==================================================
+
+    totalUsers: {
+        type: Number,
+        default: 0
+    },
+
+    totalCustomers: {
+        type: Number,
+        default: 0
+    },
+
+    totalSellers: {
+        type: Number,
+        default: 0
+    },
+
+    totalOrders: {
+        type: Number,
+        default: 0
+    },
+
+    totalProducts: {
+        type: Number,
+        default: 0
+    },
+
+    totalCategories: {
+        type: Number,
+        default: 0
+    },
+
+    totalRevenue: {
+        type: Number,
+        default: 0
+    },
+
+    totalWithdrawals: {
+        type: Number,
+        default: 0
+    },
+
+    totalPendingOrders: {
+        type: Number,
+        default: 0
+    },
+
+    totalCompletedOrders: {
+        type: Number,
+        default: 0
+    },
+
+    // ==================================================
+    // Recent Login
+    // ==================================================
+
+    lastAccess: {
+        type: Date,
+        default: Date.now
+    },
+
+    lastIP: {
+        type: String,
+        default: ""
+    },
+
+    // ==================================================
+    // Dashboard Settings
+    // ==================================================
+
+    darkMode: {
+        type: Boolean,
+        default: false
+    },
+
+    language: {
+        type: String,
+        default: "English"
+    },
+
+    currency: {
+        type: String,
+        default: "NGN"
+    },
+
+    // ==================================================
+    // Notes
+    // ==================================================
+
+    notes: {
+        type: String,
+        default: ""
+    }
+
+}, {
+
+    timestamps: true
+
+});
+
+module.exports = mongoose.model(
+    "AdminDashboard",
+    adminDashboardSchema
+);
