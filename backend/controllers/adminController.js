@@ -1013,3 +1013,1652 @@ exports.deleteUser = async (req, res) => {
     }
 
 };
+
+// ======================================================
+// Search & Pagination Users
+// ======================================================
+
+exports.searchUsers = async (req, res) => {
+
+    try {
+
+        // ==================================================
+        // Query Parameters
+        // ==================================================
+
+        const {
+            search = "",
+            page = 1,
+            limit = 20
+        } = req.query;
+
+
+        // ==================================================
+        // Search Filter
+        // ==================================================
+
+        const filter = {
+
+            $or: [
+
+                {
+                    fullName: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                },
+
+                {
+                    email: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                },
+
+                {
+                    phone: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                },
+
+                {
+                    username: {
+                        $regex: search,
+                        $options: "i"
+                    }
+                }
+
+            ]
+
+        };
+
+
+        // ==================================================
+        // Pagination Calculation
+        // ==================================================
+
+        const skip = (page - 1) * limit;
+
+
+        // ==================================================
+        // Get Users
+        // ==================================================
+
+        const users = await User.find(filter)
+
+            .select("-password")
+
+            .skip(skip)
+
+            .limit(Number(limit))
+
+            .sort({
+                createdAt: -1
+            });
+
+
+
+        const totalUsers = await User.countDocuments(filter);
+
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            totalUsers,
+
+            currentPage: Number(page),
+
+            totalPages: Math.ceil(totalUsers / limit),
+
+            users
+
+        });
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// User Analytics Dashboard
+// ======================================================
+
+exports.userAnalytics = async (req, res) => {
+
+    try {
+
+        // ==================================================
+        // Total Users
+        // ==================================================
+
+        const totalUsers = await User.countDocuments();
+
+
+        // ==================================================
+        // Active Users
+        // ==================================================
+
+        const activeUsers = await User.countDocuments({
+
+            isActive: true
+
+        });
+
+
+        // ==================================================
+        // Blocked Users
+        // ==================================================
+
+        const blockedUsers = await User.countDocuments({
+
+            isActive: false
+
+        });
+
+
+        // ==================================================
+        // Verified Users
+        // ==================================================
+
+        const verifiedUsers = await User.countDocuments({
+
+            isEmailVerified: true
+
+        });
+
+
+        // ==================================================
+        // Unverified Users
+        // ==================================================
+
+        const unverifiedUsers = await User.countDocuments({
+
+            isEmailVerified: false
+
+        });
+
+
+        // ==================================================
+        // Role Statistics
+        // ==================================================
+
+        const customers = await User.countDocuments({
+
+            role: "customer"
+
+        });
+
+
+        const sellers = await User.countDocuments({
+
+            role: "seller"
+
+        });
+
+
+        const admins = await User.countDocuments({
+
+            role: {
+
+                $in: [
+
+                    "admin",
+
+                    "super-admin"
+
+                ]
+
+            }
+
+        });
+
+
+        // ==================================================
+        // Date Filters
+        // ==================================================
+
+        const today = new Date();
+
+        today.setHours(0,0,0,0);
+
+
+        const firstDayMonth = new Date(
+
+            today.getFullYear(),
+
+            today.getMonth(),
+
+            1
+
+        );
+
+
+        // ==================================================
+        // New Users Today
+        // ==================================================
+
+        const newUsersToday = await User.countDocuments({
+
+            createdAt: {
+
+                $gte: today
+
+            }
+
+        });
+
+
+
+        // ==================================================
+        // New Users This Month
+        // ==================================================
+
+        const newUsersThisMonth = await User.countDocuments({
+
+            createdAt: {
+
+                $gte: firstDayMonth
+
+            }
+
+        });
+
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            analytics: {
+
+                totalUsers,
+
+                activeUsers,
+
+                blockedUsers,
+
+                verifiedUsers,
+
+                unverifiedUsers,
+
+                customers,
+
+                sellers,
+
+                admins,
+
+                newUsersToday,
+
+                newUsersThisMonth
+
+            }
+
+        });
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get All Products
+// ======================================================
+
+exports.getAllProducts = async (req, res) => {
+
+    try {
+
+        const products = await Product.find()
+
+            .populate("category", "name slug")
+
+            .populate("brand", "name")
+
+            .populate("vendor", "fullName email")
+
+            .sort({
+
+                createdAt: -1
+
+            });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: products.length,
+
+            products
+
+        });
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Single Product
+// ======================================================
+
+exports.getSingleProduct = async (req, res) => {
+
+    try {
+
+        const product = await Product.findById(req.params.id)
+
+            .populate("category", "name slug")
+
+            .populate("brand", "name")
+
+            .populate("vendor", "fullName email");
+
+
+        if (!product) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Product not found."
+
+            });
+
+        }
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            product
+
+        });
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Update Product
+// ======================================================
+
+exports.updateProduct = async (req, res) => {
+
+    try {
+
+        const product = await Product.findById(req.params.id);
+
+
+        if (!product) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Product not found."
+
+            });
+
+        }
+
+
+        // ==================================================
+        // Update Product Fields
+        // ==================================================
+
+        Object.assign(product, req.body);
+
+
+        // ==================================================
+        // Track Updated Admin
+        // ==================================================
+
+        if (req.user) {
+
+            product.updatedBy = req.user.id;
+
+        }
+
+
+        await product.save();
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Product updated successfully.",
+
+            product
+
+        });
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Approve Product
+// ======================================================
+
+exports.approveProduct = async (req, res) => {
+
+    try {
+
+        const product = await Product.findById(req.params.id);
+
+
+        if (!product) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Product not found."
+
+            });
+
+        }
+
+
+        // ==================================================
+        // Approve Product
+        // ==================================================
+
+        product.status = "approved";
+
+
+        // ==================================================
+        // Track Admin Approval
+        // ==================================================
+
+        if (req.user) {
+
+            product.approvedBy = req.user.id;
+
+        }
+
+
+        product.approvedAt = new Date();
+
+
+        await product.save();
+
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Product approved successfully.",
+
+            product
+
+        });
+
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Reject Product
+// ======================================================
+
+exports.rejectProduct = async (req, res) => {
+
+    try {
+
+        const { reason } = req.body;
+
+
+        const product = await Product.findById(req.params.id);
+
+
+        if (!product) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Product not found."
+
+            });
+
+        }
+
+        rejectionReason: {
+    type: String,
+    default: ""
+},
+
+rejectedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+},
+
+rejectedAt: {
+    type: Date
+}
+        // ==================================================
+        // Reject Product
+        // ==================================================
+
+        product.status = "rejected";
+
+        // ==================================================
+        // Save Rejection Reason
+        // ==================================================
+
+        product.rejectionReason = reason || "Product rejected by admin.";
+
+
+
+        // ==================================================
+        // Track Admin Rejection
+        // ==================================================
+
+        if (req.user) {
+
+            product.rejectedBy = req.user.id;
+
+        }
+
+
+        product.rejectedAt = new Date();
+
+
+        await product.save();
+
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Product rejected successfully.",
+
+            product
+
+        });
+
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Delete Product
+// ======================================================
+
+exports.deleteProduct = async (req, res) => {
+
+    try {
+
+        const product = await Product.findById(req.params.id);
+
+
+        if (!product) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Product not found."
+
+            });
+
+        }
+
+
+        await product.deleteOne();
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Product deleted successfully."
+
+        });
+
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Search & Filter Products
+// ======================================================
+
+exports.searchProducts = async (req, res) => {
+
+    try {
+
+        const {
+
+            keyword,
+
+            category,
+
+            brand,
+
+            status,
+
+            minPrice,
+
+            maxPrice
+
+        } = req.query;
+
+
+        const filter = {};
+
+
+        // ==================================================
+        // Search by Product Name
+        // ==================================================
+
+        if (keyword) {
+
+            filter.name = {
+
+                $regex: keyword,
+
+                $options: "i"
+
+            };
+
+        }
+
+
+        // ==================================================
+        // Filter by Category
+        // ==================================================
+
+        if (category) {
+
+            filter.category = category;
+
+        }
+
+
+        // ==================================================
+        // Filter by Brand
+        // ==================================================
+
+        if (brand) {
+
+            filter.brand = brand;
+
+        }
+
+
+        // ==================================================
+        // Filter by Status
+        // ==================================================
+
+        if (status) {
+
+            filter.status = status;
+
+        }
+
+
+        // ==================================================
+        // Filter by Price
+        // ==================================================
+
+        if (minPrice || maxPrice) {
+
+            filter.price = {};
+
+            if (minPrice) {
+
+                filter.price.$gte = Number(minPrice);
+
+            }
+
+            if (maxPrice) {
+
+                filter.price.$lte = Number(maxPrice);
+
+            }
+
+        }
+
+
+        const products = await Product.find(filter)
+
+            .populate("category", "name")
+
+            .populate("brand", "name")
+
+            .populate("vendor", "fullName email")
+
+            .sort({
+
+                createdAt: -1
+
+            });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: products.length,
+
+            products
+
+        });
+
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Product Analytics Dashboard
+// ======================================================
+
+exports.productAnalytics = async (req, res) => {
+
+    try {
+
+        // ==================================================
+        // Total Products
+        // ==================================================
+
+        const totalProducts = await Product.countDocuments();
+
+        // ==================================================
+        // Product Status Statistics
+        // ==================================================
+
+        const approvedProducts = await Product.countDocuments({
+            status: "approved"
+        });
+
+        const pendingProducts = await Product.countDocuments({
+            status: "pending"
+        });
+
+        const rejectedProducts = await Product.countDocuments({
+            status: "rejected"
+        });
+
+        // ==================================================
+        // Featured Products
+        // ==================================================
+
+        const featuredProducts = await Product.countDocuments({
+            featured: true
+        });
+
+        // ==================================================
+        // Out Of Stock Products
+        // ==================================================
+
+        const outOfStockProducts = await Product.countDocuments({
+            stock: 0
+        });
+
+        // ==================================================
+        // Low Stock Products
+        // ==================================================
+
+        const lowStockProducts = await Product.countDocuments({
+            stock: {
+                $gt: 0,
+                $lte: 10
+            }
+        });
+
+        // ==================================================
+        // Return Response
+        // ==================================================
+
+        return res.status(200).json({
+
+            success: true,
+
+            analytics: {
+
+                totalProducts,
+
+                approvedProducts,
+
+                pendingProducts,
+
+                rejectedProducts,
+
+                featuredProducts,
+
+                outOfStockProducts,
+
+                lowStockProducts
+
+            }
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get All Orders
+// ======================================================
+
+exports.getAllOrders = async (req, res) => {
+
+    try {
+
+        const orders = await Order.find()
+
+            .populate("customer", "fullName email phone")
+
+            .populate("items.product", "name")
+
+            .populate("shippingAddress")
+
+            .sort({
+
+                createdAt: -1
+
+            });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: orders.length,
+
+            orders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Single Order
+// ======================================================
+
+exports.getSingleOrder = async (req, res) => {
+
+    try {
+
+        const order = await Order.findById(req.params.id)
+
+            .populate("customer", "fullName email phone")
+
+            .populate("items.product", "name price")
+
+            .populate("shippingAddress")
+
+            .populate("payment");
+
+        if (!order) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Order not found."
+
+            });
+
+        }
+
+        return res.status(200).json({
+
+            success: true,
+
+            order
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Update Order Status
+// ======================================================
+
+exports.updateOrderStatus = async (req, res) => {
+
+    try {
+
+        const { status } = req.body;
+
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Order not found."
+
+            });
+
+        }
+
+        // ==================================================
+        // Update Status
+        // ==================================================
+
+        order.status = status;
+
+        // ==================================================
+        // Save Admin Who Updated
+        // ==================================================
+
+        if (req.user) {
+
+            order.updatedBy = req.user.id;
+
+        }
+
+        // ==================================================
+        // Save Update Time
+        // ==================================================
+
+        order.updatedAt = new Date();
+
+        await order.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Order status updated successfully.",
+
+            order
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Assign Order to Warehouse
+// ======================================================
+
+exports.assignWarehouse = async (req, res) => {
+
+    try {
+
+        const { warehouseId } = req.body;
+
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Order not found."
+
+            });
+
+        }
+
+        const warehouse = await Warehouse.findById(warehouseId);
+
+        if (!warehouse) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Warehouse not found."
+
+            });
+
+        }
+
+        // ==================================================
+        // Assign Warehouse
+        // ==================================================
+
+        order.warehouse = warehouse._id;
+
+        // ==================================================
+        // Track Admin
+        // ==================================================
+
+        if (req.user) {
+
+            order.updatedBy = req.user.id;
+
+        }
+
+        await order.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Warehouse assigned successfully.",
+
+            order
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Assign Order To Logistics Company
+// ======================================================
+
+exports.assignLogistics = async (req, res) => {
+
+    try {
+
+        const {
+
+            logisticsCompany,
+            trackingNumber
+
+        } = req.body;
+
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Order not found."
+
+            });
+
+        }
+
+        // ==================================================
+        // Assign Logistics Information
+        // ==================================================
+
+        order.logisticsCompany = logisticsCompany;
+
+        order.trackingNumber = trackingNumber;
+
+        order.shippingStatus = "assigned";
+
+        // ======================================================
+// Logistics Information
+// ======================================================
+
+logisticsCompany: {
+
+    type: String,
+
+    default: ""
+
+},
+
+trackingNumber: {
+
+    type: String,
+
+    default: ""
+
+},
+
+shippingStatus: {
+
+    type: String,
+
+    enum: [
+
+        "pending",
+        "assigned",
+        "picked-up",
+        "in-transit",
+        "out-for-delivery",
+        "delivered"
+
+    ],
+
+    default: "pending"
+
+}, you 
+        
+        // ==================================================
+        // Save Admin Information
+        // ==================================================
+
+        if (req.user) {
+
+            order.updatedBy = req.user.id;
+
+        }
+
+        await order.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Logistics company assigned successfully.",
+
+            order
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Cancel Order
+// ======================================================
+
+exports.cancelOrder = async (req, res) => {
+
+    try {
+
+        const { reason } = req.body;
+
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Order not found."
+
+            });
+
+        }
+
+        // ==================================================
+        // Cancel Order
+        // ==================================================
+
+        order.status = "cancelled";
+
+        // ======================================================
+// Cancellation Information
+// ======================================================
+
+cancellationReason: {
+
+    type: String,
+
+    default: ""
+
+},
+
+cancelledBy: {
+
+    type: mongoose.Schema.Types.ObjectId,
+
+    ref: "User",
+
+    default: null
+
+},
+
+cancelledAt: {
+
+    type: Date,
+
+    default: null
+
+},
+        // ==================================================
+        // Save Cancellation Details
+        // ==================================================
+
+        order.cancellationReason = reason || "Cancelled by admin.";
+
+        order.cancelledAt = new Date();
+
+        if (req.user) {
+
+            order.cancelledBy = req.user.id;
+
+        }
+
+        await order.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Order cancelled successfully.",
+
+            order
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Refund Order
+// ======================================================
+
+exports.refundOrder = async (req, res) => {
+
+    try {
+
+        const { refundReason } = req.body;
+
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Order not found."
+
+            });
+
+        }
+
+        // ======================================================
+// Refund Information
+// ======================================================
+
+refundReason: {
+
+    type: String,
+
+    default: ""
+
+},
+
+refundedBy: {
+
+    type: mongoose.Schema.Types.ObjectId,
+
+    ref: "User",
+
+    default: null
+
+},
+
+refundedAt: {
+
+    type: Date,
+
+    default: null
+
+},
+
+        // ==================================================
+        // Update Refund Information
+        // ==================================================
+
+        order.status = "refunded";
+
+        order.refundReason = refundReason || "Refund approved by admin.";
+
+        order.refundedAt = new Date();
+
+        if (req.user) {
+
+            order.refundedBy = req.user.id;
+
+        }
+
+        await order.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "Order refunded successfully.",
+
+            order
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Search & Filter Orders
+// ======================================================
+
+exports.searchOrders = async (req, res) => {
+
+    try {
+
+        const {
+
+            orderNumber,
+            customer,
+            status,
+            paymentStatus,
+            warehouse,
+            logisticsCompany,
+            startDate,
+            endDate
+
+        } = req.query;
+
+        const filter = {};
+
+        // ==================================================
+        // Order Number
+        // ==================================================
+
+        if (orderNumber) {
+
+            filter.orderNumber = {
+
+                $regex: orderNumber,
+
+                $options: "i"
+
+            };
+
+        }
+
+        // ==================================================
+        // Customer
+        // ==================================================
+
+        if (customer) {
+
+            filter.customer = customer;
+
+        }
+
+        // ==================================================
+        // Order Status
+        // ==================================================
+
+        if (status) {
+
+            filter.status = status;
+
+        }
+
+        // ==================================================
+        // Payment Status
+        // ==================================================
+
+        if (paymentStatus) {
+
+            filter.paymentStatus = paymentStatus;
+
+        }
+
+        // ==================================================
+        // Warehouse
+        // ==================================================
+
+        if (warehouse) {
+
+            filter.warehouse = warehouse;
+
+        }
+
+        // ==================================================
+        // Logistics Company
+        // ==================================================
+
+        if (logisticsCompany) {
+
+            filter.logisticsCompany = logisticsCompany;
+
+        }
+
+        // ==================================================
+        // Date Range
+        // ==================================================
+
+        if (startDate || endDate) {
+
+            filter.createdAt = {};
+
+            if (startDate) {
+
+                filter.createdAt.$gte = new Date(startDate);
+
+            }
+
+            if (endDate) {
+
+                filter.createdAt.$lte = new Date(endDate);
+
+            }
+
+        }
+
+        const orders = await Order.find(filter)
+
+            .populate("customer", "fullName email phone")
+
+            .populate("warehouse", "name")
+
+            .sort({
+
+                createdAt: -1
+
+            });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: orders.length,
+
+            orders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
