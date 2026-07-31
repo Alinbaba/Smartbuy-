@@ -145,6 +145,352 @@ const adminDashboardSchema = new mongoose.Schema({
         default: ""
     }
 
+// ==================================================
+// Dashboard Widgets
+// ==================================================
+
+dashboardWidgets: [{
+
+    // Widget Name
+    widget: {
+        type: String,
+        enum: [
+            "sales",
+            "orders",
+            "revenue",
+            "customers",
+            "products",
+            "inventory",
+            "withdrawals",
+            "wallet",
+            "vendors",
+            "kyc",
+            "support",
+            "shipments",
+            "returns",
+            "reviews",
+            "notifications",
+            "analytics"
+        ]
+    },
+
+    // Show/Hide Widget
+    enabled: {
+        type: Boolean,
+        default: true
+    },
+
+    // Position on Dashboard
+    position: {
+        type: Number,
+        default: 0
+    }
+
+}],
+
+// ==================================================
+// Dashboard Filters
+// ==================================================
+
+defaultDateRange: {
+    type: String,
+    enum: [
+        "today",
+        "7days",
+        "30days",
+        "90days",
+        "1year",
+        "custom"
+    ],
+    default: "30days"
+},
+
+// ==================================================
+// Dashboard Theme
+// ==================================================
+
+dashboardTheme: {
+    type: String,
+    enum: [
+        "light",
+        "dark",
+        "system"
+    ],
+    default: "system"
+},
+
+
+// ======================================================
+// Admin Activity Logs
+// ======================================================
+
+activityLogs: [
+
+{
+    admin: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    },
+
+    action: {
+        type: String,
+        default: ""
+    },
+
+    module: {
+        type: String,
+        default: ""
+    },
+
+    description: {
+        type: String,
+        default: ""
+    },
+
+    ipAddress: {
+        type: String,
+        default: ""
+    },
+
+    device: {
+        type: String,
+        default: ""
+    },
+
+    browser: {
+        type: String,
+        default: ""
+    },
+
+    status: {
+        type: String,
+        enum: [
+            "success",
+            "failed",
+            "warning"
+        ],
+        default: "success"
+    },
+
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+
+}
+],
+
+======================================================
+// Dashboard Statistics
+// ======================================================
+
+statistics: {
+
+    // ==================================================
+    // User Statistics
+    // ==================================================
+
+    totalUsers: {
+        type: Number,
+        default: 0
+    },
+
+    totalCustomers: {
+        type: Number,
+        default: 0
+    },
+
+    totalSellers: {
+        type: Number,
+        default: 0
+    },
+
+    totalAdmins: {
+        type: Number,
+        default: 0
+    },
+
+    // ==================================================
+    // Product Statistics
+    // ==================================================
+
+    totalProducts: {
+        type: Number,
+        default: 0
+    },
+
+    totalCategories: {
+        type: Number,
+        default: 0
+    },
+
+    totalBrands: {
+        type: Number,
+        default: 0
+    },
+
+    // ==================================================
+    // Order Statistics
+    // ==================================================
+
+    totalOrders: {
+        type: Number,
+        default: 0
+    },
+
+    pendingOrders: {
+        type: Number,
+        default: 0
+    },
+
+    processingOrders: {
+        type: Number,
+        default: 0
+    },
+
+    shippedOrders: {
+        type: Number,
+        default: 0
+    },
+
+    deliveredOrders: {
+        type: Number,
+        default: 0
+    },
+
+    cancelledOrders: {
+        type: Number,
+        default: 0
+    },
+
+    // ==================================================
+    // Financial Statistics
+    // ==================================================
+
+    totalRevenue: {
+        type: Number,
+        default: 0
+    },
+
+    totalTransactions: {
+        type: Number,
+        default: 0
+    },
+
+    totalWithdrawals: {
+        type: Number,
+        default: 0
+    }
+
+},
+
+// ======================================================
+// Recent Activities
+// ======================================================
+
+recentActivities: [
+
+{
+
+    title: {
+        type: String,
+        default: ""
+    },
+
+    description: {
+        type: String,
+        default: ""
+    },
+
+    module: {
+        type: String,
+        default: ""
+    },
+
+    actionType: {
+        type: String,
+        enum: [
+            "create",
+            "update",
+            "delete",
+            "approve",
+            "reject",
+            "login",
+            "logout",
+            "other"
+        ],
+        default: "other"
+    },
+
+    performedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
+
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+
+}
+
+],
+
+// ======================================================
+// Recent Activities
+// ======================================================
+
+recentActivities: [
+
+{
+
+    title: {
+        type: String,
+        default: ""
+    },
+
+    description: {
+        type: String,
+        default: ""
+    },
+
+    module: {
+        type: String,
+        default: ""
+    },
+
+    actionType: {
+        type: String,
+        enum: [
+            "create",
+            "update",
+            "delete",
+            "approve",
+            "reject",
+            "login",
+            "logout",
+            "other"
+        ],
+        default: "other"
+    },
+
+    performedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
+
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
+
+}
+
+],
+
+
 }, {
 
     timestamps: true
