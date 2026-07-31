@@ -11,6 +11,8 @@ const Brand = require("../models/Brand");
 const Order = require("../models/Order");
 const Payment = require("../models/Payment");
 const Transaction = require("../models/Transaction");
+const { Parser } = require("json2csv");
+const Wallet = require("../models/Wallet");
 const Withdrawal = require("../models/Withdrawal");
 const Warehouse = require("../models/Warehouse");
 const Inventory = require("../models/Inventory");
@@ -3151,3 +3153,1477 @@ exports.getRefundedOrders = async (req, res) => {
     }
 
 };
+
+// ======================================================
+// Finance Dashboard Overview
+// ======================================================
+
+exports.financeDashboard = async (req, res) => {
+
+    try {
+
+        // ==================================================
+        // Payment Statistics
+        // ==================================================
+
+        const totalPayments = await Payment.countDocuments();
+
+        const successfulPayments = await Payment.countDocuments({
+
+            status: "successful"
+
+        });
+
+        const pendingPayments = await Payment.countDocuments({
+
+            status: "pending"
+
+        });
+
+        const failedPayments = await Payment.countDocuments({
+
+            status: "failed"
+
+        });
+
+        // ==================================================
+        // Transaction Statistics
+        // ==================================================
+
+        const totalTransactions = await Transaction.countDocuments();
+
+        // ==================================================
+        // Wallet Statistics
+        // ==================================================
+
+        const totalWallets = await Wallet.countDocuments();
+
+        // ==================================================
+        // Withdrawal Statistics
+        // ==================================================
+
+        const totalWithdrawals = await Withdrawal.countDocuments();
+
+        const pendingWithdrawals = await Withdrawal.countDocuments({
+
+            status: "pending"
+
+        });
+
+        const approvedWithdrawals = await Withdrawal.countDocuments({
+
+            status: "approved"
+
+        });
+
+        const rejectedWithdrawals = await Withdrawal.countDocuments({
+
+            status: "rejected"
+
+        });
+
+        // ==================================================
+        // Revenue
+        // ==================================================
+
+        const revenue = await Transaction.aggregate([
+
+            {
+
+                $match: {
+
+                    status: "successful"
+
+                }
+
+            },
+
+            {
+
+                $group: {
+
+                    _id: null,
+
+                    totalRevenue: {
+
+                        $sum: "$amount"
+
+                    }
+
+                }
+
+            }
+
+        ]);
+
+        return res.status(200).json({
+
+            success: true,
+
+            finance: {
+
+                totalPayments,
+
+                successfulPayments,
+
+                pendingPayments,
+
+                failedPayments,
+
+                totalTransactions,
+
+                totalWallets,
+
+                totalWithdrawals,
+
+                pendingWithdrawals,
+
+                approvedWithdrawals,
+
+                rejectedWithdrawals,
+
+                totalRevenue: revenue.length
+
+                    ? revenue[0].totalRevenue
+
+                    : 0
+
+            }
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get All Payments
+// ======================================================
+
+exports.getAllPayments = async (req, res) => {
+
+    try {
+
+        const payments = await Payment.find()
+
+            .populate("user", "fullName email phone")
+
+            .populate("order", "orderNumber totalAmount status")
+
+            .sort({
+
+                createdAt: -1
+
+            });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: payments.length,
+
+            payments
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Single Payment
+// ======================================================
+
+exports.getSinglePayment = async (req, res) => {
+
+    try {
+
+        const payment = await Payment.findById(req.params.id)
+
+            .populate("user", "fullName email phone")
+
+            .populate("order", "orderNumber totalAmount status");
+
+        if (!payment) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Payment not found."
+
+            });
+
+        }
+
+        return res.status(200).json({
+
+            success: true,
+
+            payment
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Search & Filter Payments
+// ======================================================
+
+exports.searchPayments = async (req, res) => {
+
+    try {
+
+        const {
+
+            reference,
+            user,
+            order,
+            status,
+            paymentMethod,
+            minAmount,
+            maxAmount,
+            startDate,
+            endDate
+
+        } = req.query;
+
+        const filter = {};
+
+        // ==================================================
+        // Payment Reference
+        // ==================================================
+
+        if (reference) {
+
+            filter.reference = {
+
+                $regex: reference,
+
+                $options: "i"
+
+            };
+
+        }
+
+        // ==================================================
+        // Customer
+        // ==================================================
+
+        if (user) {
+
+            filter.user = user;
+
+        }
+
+        // ==================================================
+        // Order
+        // ==================================================
+
+        if (order) {
+
+            filter.order = order;
+
+        }
+
+        // ==================================================
+        // Payment Status
+        // ==================================================
+
+        if (status) {
+
+            filter.status = status;
+
+        }
+
+        // ==================================================
+        // Payment Method
+        // ==================================================
+
+        if (paymentMethod) {
+
+            filter.paymentMethod = paymentMethod;
+
+        }
+
+        // ==================================================
+        // Amount Range
+        // ==================================================
+
+        if (minAmount || maxAmount) {
+
+            filter.amount = {};
+
+            if (minAmount) {
+
+                filter.amount.$gte = Number(minAmount);
+
+            }
+
+            if (maxAmount) {
+
+                filter.amount.$lte = Number(maxAmount);
+
+            }
+
+        }
+
+        // ==================================================
+        // Date Range
+        // ==================================================
+
+        if (startDate || endDate) {
+
+            filter.createdAt = {};
+
+            if (startDate) {
+
+                filter.createdAt.$gte = new Date(startDate);
+
+            }
+
+            if (endDate) {
+
+                filter.createdAt.$lte = new Date(endDate);
+
+            }
+
+        }
+
+        const payments = await Payment.find(filter)
+
+            .populate("user", "fullName email")
+
+            .populate("order", "orderNumber")
+
+            .sort({
+
+                createdAt: -1
+
+            });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: payments.length,
+
+            payments
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Payment Analytics Dashboard
+// ======================================================
+
+exports.paymentAnalytics = async (req, res) => {
+
+    try {
+
+        // ==================================================
+        // Payment Statistics
+        // ==================================================
+
+        const totalPayments = await Payment.countDocuments();
+
+        const successfulPayments = await Payment.countDocuments({
+            status: "successful"
+        });
+
+        const pendingPayments = await Payment.countDocuments({
+            status: "pending"
+        });
+
+        const failedPayments = await Payment.countDocuments({
+            status: "failed"
+        });
+
+        // ==================================================
+        // Total Payment Amount
+        // ==================================================
+
+        const paymentSummary = await Payment.aggregate([
+
+            {
+                $match: {
+                    status: "successful"
+                }
+            },
+
+            {
+                $group: {
+                    _id: null,
+                    totalAmount: { $sum: "$amount" },
+                    averageAmount: { $avg: "$amount" }
+                }
+            }
+
+        ]);
+
+        // ==================================================
+        // Today's Payments
+        // ==================================================
+
+        const today = new Date();
+
+        today.setHours(0, 0, 0, 0);
+
+        const todaysPayments = await Payment.countDocuments({
+
+            createdAt: {
+                $gte: today
+            }
+
+        });
+
+        // ==================================================
+        // This Month's Payments
+        // ==================================================
+
+        const firstDayOfMonth = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1
+        );
+
+        const monthlyPayments = await Payment.countDocuments({
+
+            createdAt: {
+                $gte: firstDayOfMonth
+            }
+
+        });
+
+        // ==================================================
+        // Return Analytics
+        // ==================================================
+
+        return res.status(200).json({
+
+            success: true,
+
+            analytics: {
+
+                totalPayments,
+
+                successfulPayments,
+
+                pendingPayments,
+
+                failedPayments,
+
+                totalPaymentAmount:
+                    paymentSummary.length
+                        ? paymentSummary[0].totalAmount
+                        : 0,
+
+                averagePaymentAmount:
+                    paymentSummary.length
+                        ? paymentSummary[0].averageAmount
+                        : 0,
+
+                todaysPayments,
+
+                monthlyPayments
+
+            }
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Recent Payments
+// ======================================================
+
+exports.getRecentPayments = async (req, res) => {
+
+    try {
+
+        const recentPayments = await Payment.find()
+
+            .populate("user", "fullName email")
+
+            .populate("order", "orderNumber totalAmount")
+
+            .sort({
+
+                createdAt: -1
+
+            })
+
+            .limit(10);
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: recentPayments.length,
+
+            recentPayments
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Successful Payments
+// ======================================================
+
+exports.getSuccessfulPayments = async (req, res) => {
+
+    try {
+
+        const successfulPayments = await Payment.find({
+
+            status: "successful"
+
+        })
+
+        .populate("user", "fullName email phone")
+
+        .populate("order", "orderNumber totalAmount")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: successfulPayments.length,
+
+            successfulPayments
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Pending Payments
+// ======================================================
+
+exports.getPendingPayments = async (req, res) => {
+
+    try {
+
+        const pendingPayments = await Payment.find({
+
+            status: "pending"
+
+        })
+
+        .populate("user", "fullName email phone")
+
+        .populate("order", "orderNumber totalAmount")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: pendingPayments.length,
+
+            pendingPayments
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Failed Payments
+// ======================================================
+
+exports.getFailedPayments = async (req, res) => {
+
+    try {
+
+        const failedPayments = await Payment.find({
+
+            status: "failed"
+
+        })
+
+        .populate("user", "fullName email phone")
+
+        .populate("order", "orderNumber totalAmount")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: failedPayments.length,
+
+            failedPayments
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get All Transactions
+// ======================================================
+
+exports.getAllTransactions = async (req, res) => {
+
+    try {
+
+        const transactions = await Transaction.find()
+
+            .populate("user", "fullName email phone")
+
+            .sort({
+
+                createdAt: -1
+
+            });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: transactions.length,
+
+            transactions
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Single Transaction
+// ======================================================
+
+exports.getSingleTransaction = async (req, res) => {
+
+    try {
+
+        const transaction = await Transaction.findById(req.params.id)
+
+            .populate("user", "fullName email phone")
+
+            .populate("order", "orderNumber totalAmount status");
+
+        if (!transaction) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Transaction not found."
+
+            });
+
+        }
+
+        return res.status(200).json({
+
+            success: true,
+
+            transaction
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Search & Filter Transactions
+// ======================================================
+
+exports.searchTransactions = async (req, res) => {
+
+    try {
+
+        const {
+
+            reference,
+            user,
+            order,
+            type,
+            status,
+            paymentMethod,
+            minAmount,
+            maxAmount,
+            startDate,
+            endDate
+
+        } = req.query;
+
+        const filter = {};
+
+        // ==================================================
+        // Transaction Reference
+        // ==================================================
+
+        if (reference) {
+
+            filter.reference = {
+
+                $regex: reference,
+
+                $options: "i"
+
+            };
+
+        }
+
+        // ==================================================
+        // Customer
+        // ==================================================
+
+        if (user) {
+
+            filter.user = user;
+
+        }
+
+        // ==================================================
+        // Order
+        // ==================================================
+
+        if (order) {
+
+            filter.order = order;
+
+        }
+
+        // ==================================================
+        // Transaction Type
+        // ==================================================
+
+        if (type) {
+
+            filter.type = type;
+
+        }
+
+        // ==================================================
+        // Transaction Status
+        // ==================================================
+
+        if (status) {
+
+            filter.status = status;
+
+        }
+
+        // ==================================================
+        // Payment Method
+        // ==================================================
+
+        if (paymentMethod) {
+
+            filter.paymentMethod = paymentMethod;
+
+        }
+
+        // ==================================================
+        // Amount Range
+        // ==================================================
+
+        if (minAmount || maxAmount) {
+
+            filter.amount = {};
+
+            if (minAmount) {
+
+                filter.amount.$gte = Number(minAmount);
+
+            }
+
+            if (maxAmount) {
+
+                filter.amount.$lte = Number(maxAmount);
+
+            }
+
+        }
+
+        // ==================================================
+        // Date Range
+        // ==================================================
+
+        if (startDate || endDate) {
+
+            filter.createdAt = {};
+
+            if (startDate) {
+
+                filter.createdAt.$gte = new Date(startDate);
+
+            }
+
+            if (endDate) {
+
+                filter.createdAt.$lte = new Date(endDate);
+
+            }
+
+        }
+
+        const transactions = await Transaction.find(filter)
+
+            .populate("user", "fullName email")
+
+            .populate("order", "orderNumber")
+
+            .sort({
+
+                createdAt: -1
+
+            });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: transactions.length,
+
+            transactions
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Transaction Analytics Dashboard
+// ======================================================
+
+exports.transactionAnalytics = async (req, res) => {
+
+    try {
+
+        // ==================================================
+        // Total Transactions
+        // ==================================================
+
+        const totalTransactions = await Transaction.countDocuments();
+
+        // ==================================================
+        // Transaction Types
+        // ==================================================
+
+        const creditTransactions = await Transaction.countDocuments({
+            type: "credit"
+        });
+
+        const debitTransactions = await Transaction.countDocuments({
+            type: "debit"
+        });
+
+        // ==================================================
+        // Transaction Status
+        // ==================================================
+
+        const successfulTransactions = await Transaction.countDocuments({
+            status: "successful"
+        });
+
+        const pendingTransactions = await Transaction.countDocuments({
+            status: "pending"
+        });
+
+        const failedTransactions = await Transaction.countDocuments({
+            status: "failed"
+        });
+
+        // ==================================================
+        // Total & Average Transaction Amount
+        // ==================================================
+
+        const summary = await Transaction.aggregate([
+
+            {
+                $match: {
+                    status: "successful"
+                }
+            },
+
+            {
+                $group: {
+                    _id: null,
+                    totalAmount: {
+                        $sum: "$amount"
+                    },
+                    averageAmount: {
+                        $avg: "$amount"
+                    }
+                }
+            }
+
+        ]);
+
+        // ==================================================
+        // Return Analytics
+        // ==================================================
+
+        return res.status(200).json({
+
+            success: true,
+
+            analytics: {
+
+                totalTransactions,
+
+                creditTransactions,
+
+                debitTransactions,
+
+                successfulTransactions,
+
+                pendingTransactions,
+
+                failedTransactions,
+
+                totalTransactionAmount:
+                    summary.length
+                        ? summary[0].totalAmount
+                        : 0,
+
+                averageTransactionAmount:
+                    summary.length
+                        ? summary[0].averageAmount
+                        : 0
+
+            }
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Recent Transactions
+// ======================================================
+
+exports.getRecentTransactions = async (req, res) => {
+
+    try {
+
+        const recentTransactions = await Transaction.find()
+
+            .populate("user", "fullName email")
+
+            .populate("order", "orderNumber totalAmount")
+
+            .sort({
+
+                createdAt: -1
+
+            })
+
+            .limit(10);
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: recentTransactions.length,
+
+            recentTransactions
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Credit Transactions
+// ======================================================
+
+exports.getCreditTransactions = async (req, res) => {
+
+    try {
+
+        const creditTransactions = await Transaction.find({
+
+            type: "credit"
+
+        })
+
+        .populate("user", "fullName email phone")
+
+        .populate("order", "orderNumber totalAmount")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: creditTransactions.length,
+
+            creditTransactions
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Debit Transactions
+// ======================================================
+
+exports.getDebitTransactions = async (req, res) => {
+
+    try {
+
+        const debitTransactions = await Transaction.find({
+
+            type: "debit"
+
+        })
+
+        .populate("user", "fullName email phone")
+
+        .populate("order", "orderNumber totalAmount")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: debitTransactions.length,
+
+            debitTransactions
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Revenue Transactions
+// ======================================================
+
+exports.getRevenueTransactions = async (req, res) => {
+
+    try {
+
+        const revenueTransactions = await Transaction.find({
+
+            type: "credit",
+
+            status: "successful"
+
+        })
+
+        .populate("user", "fullName email phone")
+
+        .populate("order", "orderNumber totalAmount")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        const totalRevenue = revenueTransactions.reduce(
+
+            (sum, transaction) => sum + transaction.amount,
+
+            0
+
+        );
+
+        return res.status(200).json({
+
+            success: true,
+
+            totalTransactions: revenueTransactions.length,
+
+            totalRevenue,
+
+            revenueTransactions
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Refund Transactions
+// ======================================================
+
+exports.getRefundTransactions = async (req, res) => {
+
+    try {
+
+        const refundTransactions = await Transaction.find({
+
+            type: "debit",
+
+            category: "refund"
+
+        })
+
+        .populate("user", "fullName email phone")
+
+        .populate("order", "orderNumber totalAmount")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        const totalRefundAmount = refundTransactions.reduce(
+
+            (sum, transaction) => sum + transaction.amount,
+
+            0
+
+        );
+
+        return res.status(200).json({
+
+            success: true,
+
+            totalTransactions: refundTransactions.length,
+
+            totalRefundAmount,
+
+            refundTransactions
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Export Transactions to CSV
+// ======================================================
+
+exports.exportTransactionsCSV = async (req, res) => {
+
+    try {
+
+        const transactions = await Transaction.find()
+
+            .populate("user", "fullName email")
+
+            .populate("order", "orderNumber");
+
+        const data = transactions.map(transaction => ({
+
+            TransactionID: transaction._id,
+
+            Reference: transaction.reference,
+
+            Customer: transaction.user
+                ? transaction.user.fullName
+                : "",
+
+            Email: transaction.user
+                ? transaction.user.email
+                : "",
+
+            OrderNumber: transaction.order
+                ? transaction.order.orderNumber
+                : "",
+
+            Amount: transaction.amount,
+
+            Type: transaction.type,
+
+            Status: transaction.status,
+
+            PaymentMethod: transaction.paymentMethod,
+
+            Date: transaction.createdAt
+
+        }));
+
+        const fields = [
+
+            "TransactionID",
+
+            "Reference",
+
+            "Customer",
+
+            "Email",
+
+            "OrderNumber",
+
+            "Amount",
+
+            "Type",
+
+            "Status",
+
+            "PaymentMethod",
+
+            "Date"
+
+        ];
+
+        const parser = new Parser({
+
+            fields
+
+        });
+
+        const csv = parser.parse(data);
+
+        res.header(
+
+            "Content-Type",
+
+            "text/csv"
+
+        );
+
+        res.attachment(
+
+            "transactions.csv"
+
+        );
+
+        return res.send(csv);
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
