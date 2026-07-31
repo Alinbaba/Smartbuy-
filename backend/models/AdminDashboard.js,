@@ -143,7 +143,7 @@ const adminDashboardSchema = new mongoose.Schema({
     notes: {
         type: String,
         default: ""
-    }
+    },
 
 // ==================================================
 // Dashboard Widgets
@@ -280,7 +280,7 @@ activityLogs: [
 }
 ],
 
-======================================================
+//======================================================
 // Dashboard Statistics
 // ======================================================
 
@@ -383,59 +383,6 @@ statistics: {
     }
 
 },
-
-// ======================================================
-// Recent Activities
-// ======================================================
-
-recentActivities: [
-
-{
-
-    title: {
-        type: String,
-        default: ""
-    },
-
-    description: {
-        type: String,
-        default: ""
-    },
-
-    module: {
-        type: String,
-        default: ""
-    },
-
-    actionType: {
-        type: String,
-        enum: [
-            "create",
-            "update",
-            "delete",
-            "approve",
-            "reject",
-            "login",
-            "logout",
-            "other"
-        ],
-        default: "other"
-    },
-
-    performedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        default: null
-    },
-
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-
-}
-
-],
 
 // ======================================================
 // Recent Activities
