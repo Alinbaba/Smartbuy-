@@ -2662,3 +2662,492 @@ exports.searchOrders = async (req, res) => {
     }
 
 };
+
+// ======================================================
+// Order Analytics Dashboard
+// ======================================================
+
+exports.orderAnalytics = async (req, res) => {
+
+    try {
+
+        // ==================================================
+        // Total Orders
+        // ==================================================
+
+        const totalOrders = await Order.countDocuments();
+
+        // ==================================================
+        // Order Status Statistics
+        // ==================================================
+
+        const pendingOrders = await Order.countDocuments({
+            status: "pending"
+        });
+
+        const confirmedOrders = await Order.countDocuments({
+            status: "confirmed"
+        });
+
+        const processingOrders = await Order.countDocuments({
+            status: "processing"
+        });
+
+        const packedOrders = await Order.countDocuments({
+            status: "packed"
+        });
+
+        const shippedOrders = await Order.countDocuments({
+            status: "shipped"
+        });
+
+        const deliveredOrders = await Order.countDocuments({
+            status: "delivered"
+        });
+
+        const cancelledOrders = await Order.countDocuments({
+            status: "cancelled"
+        });
+
+        const refundedOrders = await Order.countDocuments({
+            status: "refunded"
+        });
+
+        // ==================================================
+        // Total Revenue
+        // ==================================================
+
+        const revenue = await Order.aggregate([
+            {
+                $match: {
+                    status: "delivered"
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: {
+                        $sum: "$totalAmount"
+                    }
+                }
+            }
+        ]);
+
+        // ==================================================
+        // Return Analytics
+        // ==================================================
+
+        return res.status(200).json({
+
+            success: true,
+
+            analytics: {
+
+                totalOrders,
+
+                pendingOrders,
+
+                confirmedOrders,
+
+                processingOrders,
+
+                packedOrders,
+
+                shippedOrders,
+
+                deliveredOrders,
+
+                cancelledOrders,
+
+                refundedOrders,
+
+                totalRevenue: revenue.length
+                    ? revenue[0].totalRevenue
+                    : 0
+
+            }
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Recent Orders
+// ======================================================
+
+exports.getRecentOrders = async (req, res) => {
+
+    try {
+
+        const recentOrders = await Order.find()
+
+            .populate("customer", "fullName email")
+
+            .sort({ createdAt: -1 })
+
+            .limit(10);
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: recentOrders.length,
+
+            recentOrders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Pending Orders
+// ======================================================
+
+exports.getPendingOrders = async (req, res) => {
+
+    try {
+
+        const pendingOrders = await Order.find({
+
+            status: "pending"
+
+        })
+
+        .populate("customer", "fullName email phone")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: pendingOrders.length,
+
+            pendingOrders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Processing Orders
+// ======================================================
+
+exports.getProcessingOrders = async (req, res) => {
+
+    try {
+
+        const processingOrders = await Order.find({
+
+            status: "processing"
+
+        })
+
+        .populate("customer", "fullName email phone")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: processingOrders.length,
+
+            processingOrders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Packed Orders
+// ======================================================
+
+exports.getPackedOrders = async (req, res) => {
+
+    try {
+
+        const packedOrders = await Order.find({
+
+            status: "packed"
+
+        })
+
+        .populate("customer", "fullName email phone")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: packedOrders.length,
+
+            packedOrders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Shipped Orders
+// ======================================================
+
+exports.getShippedOrders = async (req, res) => {
+
+    try {
+
+        const shippedOrders = await Order.find({
+
+            status: "shipped"
+
+        })
+
+        .populate("customer", "fullName email phone")
+
+        .populate("warehouse", "name")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: shippedOrders.length,
+
+            shippedOrders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Delivered Orders
+// ======================================================
+
+exports.getDeliveredOrders = async (req, res) => {
+
+    try {
+
+        const deliveredOrders = await Order.find({
+
+            status: "delivered"
+
+        })
+
+        .populate("customer", "fullName email phone")
+
+        .populate("warehouse", "name")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: deliveredOrders.length,
+
+            deliveredOrders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+// ======================================================
+// Get Cancelled Orders
+// ======================================================
+
+exports.getCancelledOrders = async (req, res) => {
+
+    try {
+
+        const cancelledOrders = await Order.find({
+
+            status: "cancelled"
+
+        })
+
+        .populate("customer", "fullName email phone")
+
+        .populate("warehouse", "name")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: cancelledOrders.length,
+
+            cancelledOrders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Refunded Orders
+// ======================================================
+
+exports.getRefundedOrders = async (req, res) => {
+
+    try {
+
+        const refundedOrders = await Order.find({
+
+            status: "refunded"
+
+        })
+
+        .populate("customer", "fullName email phone")
+
+        .populate("warehouse", "name")
+
+        .sort({
+
+            createdAt: -1
+
+        });
+
+        return res.status(200).json({
+
+            success: true,
+
+            total: refundedOrders.length,
+
+            refundedOrders
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
