@@ -51,8 +51,7 @@ exports.registerUser = async (req, res) => {
 
         }
 
-        console.log("Registration password received:", password);
-
+        
         const user = await User.create({
 
             fullName,
@@ -201,6 +200,8 @@ console.log("Match result:", isMatch);
 
     }
 
+            console.log("Registration password received:", password);
+            
     await user.save();
 
            return res.status(401).json({
@@ -506,7 +507,7 @@ await user.save();
         });
 
     }
-
+    
 };
 // ==========================
 // Reset Password
