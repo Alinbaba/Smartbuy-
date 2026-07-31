@@ -51,6 +51,8 @@ exports.registerUser = async (req, res) => {
 
         }
 
+        console.log("Registration password received:", password);
+
         const user = await User.create({
 
             fullName,
@@ -64,6 +66,7 @@ exports.registerUser = async (req, res) => {
         user.profileCompletion = 30;
 
 await user.save();
+        console.log("Password hash saved:", user.password);
         
         const token = jwt.sign(
 
