@@ -4931,3 +4931,300 @@ exports.exportTransactions = async (req, res) => {
 
 };
 
+// ======================================================
+// Wallet Dashboard
+// ======================================================
+
+exports.getWalletDashboard = async (req, res) => {
+
+    try {
+
+        const totalWallets = await Wallet.countDocuments();
+
+        const activeWallets = await Wallet.countDocuments({
+
+            isLocked: false
+
+        });
+
+        const lockedWallets = await Wallet.countDocuments({
+
+            isLocked: true
+
+        });
+
+        const summary = await Wallet.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: null,
+
+                    totalAvailableBalance: {
+
+                        $sum: "$availableBalance"
+
+                    },
+
+                    totalPendingBalance: {
+
+                        $sum: "$pendingBalance"
+
+                    },
+
+                    totalFrozenBalance: {
+
+                        $sum: "$frozenBalance"
+
+                    },
+
+                    totalRewardPoints: {
+
+                        $sum: "$rewardPoints"
+
+                    },
+
+                    totalCashback: {
+
+                        $sum: "$cashbackBalance"
+
+                    }
+
+                }
+
+            }
+
+        ]);
+
+        res.status(200).json({
+
+            success: true,
+
+            data: {
+
+                totalWallets,
+
+                activeWallets,
+
+                lockedWallets,
+
+                totalAvailableBalance:
+                    summary[0]?.totalAvailableBalance || 0,
+
+                totalPendingBalance:
+                    summary[0]?.totalPendingBalance || 0,
+
+                totalFrozenBalance:
+                    summary[0]?.totalFrozenBalance || 0,
+
+                totalRewardPoints:
+                    summary[0]?.totalRewardPoints || 0,
+
+                totalCashback:
+                    summary[0]?.totalCashback || 0
+
+            }
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get All Wallets
+// Enterprise Search + Filter + Pagination + Sorting
+// ======================================================
+
+exports.getWallets = async (req, res) => {
+
+    try {
+
+        const page = parseInt(req.query.page) || 1;
+
+        const limit = parseInt(req.query.limit) || 20;
+
+        const skip = (page - 1) * limit;
+
+        const search = req.query.search || "";
+
+        const walletType = req.query.walletType;
+
+        const currency = req.query.currency;
+
+        const isActive = req.query.isActive;
+
+        const isLocked = req.query.isLocked;
+
+        const kycStatus = req.query.kycStatus;
+
+        const sortBy = req.query.sortBy || "createdAt";
+
+        const order = req.query.order === "asc" ? 1 : -1;
+
+        const filter = {};
+
+        if (walletType) {
+
+            filter.walletType = walletType;
+
+        }
+
+        if (currency) {
+
+            filter.currency = currency;
+
+        }
+
+        if (typeof isActive !== "undefined") {
+
+            filter.isActive = isActive === "true";
+
+        }
+
+        if (typeof isLocked !== "undefined") {
+
+            filter.isLocked = isLocked === "true";
+
+        }
+
+        if (kycStatus) {
+
+            filter.kycStatus = kycStatus;
+
+        }
+
+        const wallets = await Wallet.find(filter)
+
+            .populate({
+
+                path: "user",
+
+                select: "firstName lastName email phoneNumber"
+
+            })
+
+            .sort({
+
+                [sortBy]: order
+
+            })
+
+            .skip(skip)
+
+            .limit(limit);
+
+        const filteredWallets = wallets.filter(wallet => {
+
+            if (!search) return true;
+
+            const user = wallet.user || {};
+
+            const keyword = search.toLowerCase();
+
+            return (
+
+                wallet.walletId?.toLowerCase().includes(keyword) ||
+
+                user.firstName?.toLowerCase().includes(keyword) ||
+
+                user.lastName?.toLowerCase().includes(keyword) ||
+
+                user.email?.toLowerCase().includes(keyword)
+
+            );
+
+        });
+
+        const total = await Wallet.countDocuments(filter);
+
+        res.status(200).json({
+
+            success: true,
+
+            data: filteredWallets,
+
+            pagination: {
+
+                page,
+
+                limit,
+
+                total,
+
+                totalPages: Math.ceil(total / limit)
+
+            }
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Single Wallet Details
+// ======================================================
+
+exports.getWalletById = async (req, res) => {
+
+    try {
+
+        const wallet = await Wallet.findById(req.params.id)
+
+            .populate({
+                path: "user",
+                select: "-password"
+            });
+
+        if (!wallet) {
+
+            return res.status(404).json({
+
+                success: false,
+                message: "Wallet not found."
+
+            });
+
+        }
+
+        res.status(200).json({
+
+            success: true,
+            data: wallet
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+            message: error.message
+
+        });
+
+    }
+
+};
