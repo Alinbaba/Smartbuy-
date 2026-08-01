@@ -5381,6 +5381,7 @@ exports.debitWallet = async (req, res) => {
         }
 
         const wallet = await Wallet.findById(req.params.id);
+        const balanceBefore = wallet.availableBalance;
 
         if (!wallet) {
 
@@ -5432,8 +5433,33 @@ exports.debitWallet = async (req, res) => {
 
         wallet.lastTransactionDate = new Date();
 
-        await wallet.save();
+        await wallet.save({session});
+        
+await Transaction.create([{
 
+    user: wallet.user,
+
+    wallet: wallet._id,
+
+    transactionType: "adjustment",
+
+    amount: Number(amount),
+
+    currency: wallet.currency,
+
+    paymentMethod: "wallet",
+
+    transactionDirection: "debit",
+
+    status: "successful",
+
+    balanceBefore: balanceBefore,
+
+    balanceAfter: wallet.availableBalance,
+
+    description: description || "Wallet debited"
+
+}], { session });
         res.status(200).json({
 
             success: true,
