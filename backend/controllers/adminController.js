@@ -5416,3 +5416,133 @@ exports.debitWallet = async (req, res) => {
     }
 
 };
+
+// ======================================================
+// Freeze Wallet
+// ======================================================
+
+exports.freezeWallet = async (req, res) => {
+
+    try {
+
+        const { reason } = req.body;
+
+        const wallet = await Wallet.findById(req.params.id);
+
+        if (!wallet) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Wallet not found."
+
+            });
+
+        }
+
+        if (wallet.isLocked) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Wallet is already frozen."
+
+            });
+
+        }
+
+        wallet.isLocked = true;
+
+        wallet.lockReason = reason || "Frozen by administrator.";
+
+        await wallet.save();
+
+        res.status(200).json({
+
+            success: true,
+
+            message: "Wallet frozen successfully.",
+
+            data: wallet
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Unfreeze Wallet
+// ======================================================
+
+exports.unfreezeWallet = async (req, res) => {
+
+    try {
+
+        const wallet = await Wallet.findById(req.params.id);
+
+        if (!wallet) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Wallet not found."
+
+            });
+
+        }
+
+        if (!wallet.isLocked) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Wallet is already active."
+
+            });
+
+        }
+
+        wallet.isLocked = false;
+
+        wallet.lockReason = "";
+
+        await wallet.save();
+
+        res.status(200).json({
+
+            success: true,
+
+            message: "Wallet unlocked successfully.",
+
+            data: wallet
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
