@@ -44,4 +44,18 @@ router.patch(
     adminController.freezeWallet
 );
 
+router.patch(
+    "/wallets/:id/unfreeze",
+    protect,
+    authorize("wallets.freeze"),
+    adminController.unfreezeWallet
+);
+
+router.get(
+    "/wallets/analytics",
+    protect,
+    authorize("wallets.view"),
+    adminController.getWalletAnalytics
+);
+
 module.exports = router;
