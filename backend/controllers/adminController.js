@@ -6053,3 +6053,640 @@ exports.getWithdrawalDashboard = async (req, res) => {
     }
 
 };
+
+// ======================================================
+// Withdrawal Analytics
+// ======================================================
+
+exports.getWithdrawalAnalytics = async (req, res) => {
+
+    try {
+
+        const overview = await Withdrawal.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: null,
+
+                    totalWithdrawals: {
+
+                        $sum: 1
+
+                    },
+
+                    totalAmount: {
+
+                        $sum: "$amount"
+
+                    },
+
+                    totalProcessingFees: {
+
+                        $sum: "$processingFee"
+
+                    },
+
+                    totalNetAmount: {
+
+                        $sum: "$netAmount"
+
+                    }
+
+                }
+
+            }
+
+        ]);
+
+
+
+        const statusBreakdown = await Withdrawal.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: "$status",
+
+                    total: {
+
+                        $sum: 1
+
+                    }
+
+                }
+
+            }
+
+        ]);
+
+
+
+        const methodBreakdown = await Withdrawal.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: "$withdrawalMethod",
+
+                    total: {
+
+                        $sum: 1
+
+                    }
+
+                }
+
+            }
+
+        ]);
+
+
+
+        const gatewayBreakdown = await Withdrawal.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: "$paymentGateway",
+
+                    total: {
+
+                        $sum: 1
+
+                    }
+
+                }
+
+            }
+
+        ]);
+
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            data: {
+
+                overview: overview[0] || {},
+
+                statusBreakdown,
+
+                methodBreakdown,
+
+                gatewayBreakdown
+
+            }
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get All Withdrawals
+// ======================================================
+
+exports.getAllWithdrawals = async (req, res) => {
+
+    try {
+
+        const {
+
+            page = 1,
+
+            limit = 20,
+
+            status,
+
+            withdrawalMethod,
+
+            paymentGateway,
+
+            search
+
+        } = req.query;
+
+        const filter = {};
+
+        if (status) {
+
+            filter.status = status;
+
+        }
+
+        if (withdrawalMethod) {
+
+            filter.withdrawalMethod = withdrawalMethod;
+
+        }
+
+        if (paymentGateway) {
+
+            filter.paymentGateway = paymentGateway;
+
+        }
+
+        if (search) {
+
+            filter.withdrawalId = {
+
+                $regex: search,
+
+                $options: "i"
+
+            };
+
+        }
+
+        const withdrawals = await Withdrawal.find(filter)
+
+            .populate(
+
+                "user",
+
+                "firstName lastName email"
+
+            )
+
+            .populate(
+
+                "wallet",
+
+                "walletId"
+
+            )
+
+            .sort({
+
+                createdAt: -1
+
+            })
+
+            .skip((page - 1) * limit)
+
+            .limit(Number(limit));
+
+        const total = await Withdrawal.countDocuments(filter);
+
+        res.status(200).json({
+
+            success: true,
+
+            total,
+
+            currentPage: Number(page),
+
+            totalPages: Math.ceil(total / limit),
+
+            data: withdrawals
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Get Single Withdrawal
+// ======================================================
+
+exports.getSingleWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal = await Withdrawal.findById(req.params.id)
+
+            .populate(
+                "user",
+                "firstName lastName email phone"
+            )
+
+            .populate(
+                "wallet",
+                "walletId availableBalance currency"
+            )
+
+            .populate(
+                "transaction"
+            )
+
+            .populate(
+                "requestedBy",
+                "firstName lastName"
+            )
+
+            .populate(
+                "approvedBy",
+                "firstName lastName"
+            )
+
+            .populate(
+                "completedBy",
+                "firstName lastName"
+            )
+
+            .populate(
+                "rejectedBy",
+                "firstName lastName"
+            );
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Withdrawal not found."
+
+            });
+
+        }
+
+        return res.status(200).json({
+
+            success: true,
+
+            data: withdrawal
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Request Withdrawal
+// ======================================================
+
+exports.requestWithdrawal = async (req, res) => {
+
+    try {
+
+        const {
+
+            amount,
+
+            withdrawalMethod,
+
+            description
+
+        } = req.body;
+
+        // Find user's wallet
+
+        const wallet = await Wallet.findOne({
+
+            user: req.user._id
+
+        });
+
+        if (!wallet) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Wallet not found."
+
+            });
+
+        }
+
+        // Check if wallet is locked
+
+        if (wallet.isLocked) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message: "Wallet is locked."
+
+            });
+
+        }
+
+        // Check available balance
+
+        if (wallet.availableBalance < amount) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Insufficient wallet balance."
+
+            });
+
+        }
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// =====================================
+// Check KYC Verification
+// =====================================
+
+if (wallet.kycStatus !== "verified") {
+
+    return res.status(403).json({
+
+        success: false,
+
+        message: "Please complete KYC verification before making a withdrawal."
+
+    });
+
+}
+
+// =====================================
+// Check Daily Transaction Limit
+// =====================================
+
+if (amount > wallet.dailyTransactionLimit) {
+
+    return res.status(400).json({
+
+        success: false,
+
+        message: "Daily withdrawal limit exceeded."
+
+    });
+
+}
+
+// =====================================
+// Check Monthly Transaction Limit
+// =====================================
+
+if (amount > wallet.monthlyTransactionLimit) {
+
+    return res.status(400).json({
+
+        success: false,
+
+        message: "Monthly withdrawal limit exceeded."
+
+    });
+
+}
+
+// =====================================
+// Calculate Processing Fee
+// =====================================
+
+// Default fee = 1% of withdrawal amount
+
+const processingFee = Number(amount) * 0.01;
+
+// Amount the user will actually receive
+
+const netAmount = Number(amount) - processingFee;
+
+
+// =====================================
+// Estimated Completion Time
+// =====================================
+
+// Estimate 24 hours from now
+
+const estimatedCompletion = new Date(
+
+    Date.now() + (24 * 60 * 60 * 1000)
+
+);
+
+    const withdrawal = await Withdrawal.create({
+
+    user: req.user._id,
+
+    wallet: wallet._id,
+
+    amount,
+
+    currency: wallet.currency,
+
+    withdrawalMethod,
+
+    processingFee,
+
+    netAmount,
+
+    estimatedCompletion,
+
+    requestedBy: req.user._id,
+
+    ipAddress: req.ip,
+
+    deviceInfo: req.headers["user-agent"],
+
+    description
+
+});
+
+// ======================================================
+// Approve Withdrawal
+// ======================================================
+
+exports.approveWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal = await Withdrawal.findById(req.params.id);
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Withdrawal not found."
+
+            });
+
+        }
+
+        if (withdrawal.status !== "pending") {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Only pending withdrawals can be approved."
+
+            });
+
+        }
+
+        const wallet = await Wallet.findById(
+
+            withdrawal.wallet
+
+        );
+
+        if (!wallet) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Wallet not found."
+
+            });
+
+        }
+
+// =====================================
+// Check Wallet Balance
+// =====================================
+
+if (wallet.availableBalance < withdrawal.amount) {
+
+    return res.status(400).json({
+
+        success: false,
+
+        message: "Insufficient wallet balance."
+
+    });
+
+}
+        
+// =====================================
+// Deduct Wallet Balance
+// =====================================
+     wallet.availableBalance -= withdrawal.amount;
+
+     wallet.totalWithdrawn += withdrawal.amount;
+
+     wallet.lastWithdrawalDate = new Date();
+
+     await wallet.save();
+// =====================================
+// Update Withdrawal
+// =====================================
+
+     withdrawal.status = "completed";
+
+     withdrawal.approvedBy = req.user._id;
+
+     withdrawal.approvedAt = new Date();
+
+     withdrawal.completedBy = req.user._id;
+
+     withdrawal.completedAt = new Date();
+
+     await withdrawal.save();
+
+        return res.status(200).json({
+
+    success: true,
+
+    message: "Withdrawal approved successfully.",
+
+    data: withdrawal
+
+});
+        
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
