@@ -138,11 +138,6 @@ const defaultPermissions = [
     { module: "uploads", action: "view", description: "View uploads" },
     { module: "uploads", action: "manage", description: "Manage uploads" },
 
-    // ==========================
-    // Reports
-    // ==========================
-    { module: "reports", action: "view", description: "View reports" },
-    { module: "reports", action: "export", description: "Export reports" },
 
     // ==========================
     // Categories
@@ -168,6 +163,12 @@ const defaultPermissions = [
     { module: "permissions", action: "view", description: "View permissions" },
     { module: "permissions", action: "manage", description: "Manage permissions" },
 
+    // ==========================
+    // Reports
+    // ==========================
+    { module: "reports", action: "view", description: "View reports" },
+    { module: "reports", action: "export", description: "Export reports" },
+    
     // ==========================
     // Analytics
     // ==========================
