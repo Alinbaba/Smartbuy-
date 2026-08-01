@@ -1,35 +1,88 @@
 const mongoose = require("mongoose");
 
 // ======================================================
-// Execute Financial Transaction
+// SmartBuy Enterprise Financial Transaction Engine
+// ======================================================
+//
+// Purpose:
+// Handles all financial operations safely.
+//
+// Used by:
+// - Wallet
+// - Withdrawal
+// - Payment
+// - Refund
+// - Order payment
+// - Transfers
+//
+// If anything fails:
+// Everything is rolled back automatically.
 // ======================================================
 
-const executeFinancialTransaction = async (callback) => {
+
+const executeFinancialTransaction = async (
+
+    callback
+
+) => {
+
 
     const session = await mongoose.startSession();
 
+
     try {
 
-        session.startTransaction();
+
+        session.startTransaction({
+
+            readConcern: {
+
+                level: "snapshot"
+
+            },
+
+            writeConcern: {
+
+                w: "majority"
+
+            }
+
+        });
+
+
 
         const result = await callback(session);
 
+
+
         await session.commitTransaction();
 
-        session.endSession();
 
         return result;
 
+
+
     } catch (error) {
+
 
         await session.abortTransaction();
 
-        session.endSession();
 
         throw error;
 
+
+
+    } finally {
+
+
+        await session.endSession();
+
+
     }
 
+
 };
+
+
 
 module.exports = executeFinancialTransaction;
