@@ -58,4 +58,11 @@ router.get(
     adminController.getWalletAnalytics
 );
 
+router.get(
+    "/wallets/export",
+    protect,
+    authorize("wallets.view"),
+    adminController.exportWallets
+);
+
 module.exports = router;
