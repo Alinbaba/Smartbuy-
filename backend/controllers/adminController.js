@@ -5228,3 +5228,191 @@ exports.getWalletById = async (req, res) => {
     }
 
 };
+
+
+// ======================================================
+// Credit Wallet
+// ======================================================
+
+exports.creditWallet = async (req, res) => {
+
+    try {
+
+        const { amount, description } = req.body;
+
+        if (!amount || amount <= 0) {
+
+            return res.status(400).json({
+
+                success: false,
+                message: "Invalid amount."
+
+            });
+
+        }
+
+        const wallet = await Wallet.findById(req.params.id);
+
+        if (!wallet) {
+
+            return res.status(404).json({
+
+                success: false,
+                message: "Wallet not found."
+
+            });
+
+        }
+
+        if (!wallet.isActive) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "Wallet is inactive."
+
+            });
+
+        }
+
+        if (wallet.isLocked) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "Wallet is locked."
+
+            });
+
+        }
+
+        wallet.availableBalance += Number(amount);
+
+        wallet.totalEarned += Number(amount);
+
+        wallet.lastTransactionDate = new Date();
+
+        await wallet.save();
+
+        res.status(200).json({
+
+            success: true,
+
+            message: "Wallet credited successfully.",
+
+            data: wallet
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Debit Wallet
+// ======================================================
+
+exports.debitWallet = async (req, res) => {
+
+    try {
+
+        const { amount, description } = req.body;
+
+        if (!amount || amount <= 0) {
+
+            return res.status(400).json({
+
+                success: false,
+                message: "Invalid amount."
+
+            });
+
+        }
+
+        const wallet = await Wallet.findById(req.params.id);
+
+        if (!wallet) {
+
+            return res.status(404).json({
+
+                success: false,
+                message: "Wallet not found."
+
+            });
+
+        }
+
+        if (!wallet.isActive) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "Wallet is inactive."
+
+            });
+
+        }
+
+        if (wallet.isLocked) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "Wallet is locked."
+
+            });
+
+        }
+
+        if (wallet.availableBalance < amount) {
+
+            return res.status(400).json({
+
+                success: false,
+                message: "Insufficient wallet balance."
+
+            });
+
+        }
+
+        wallet.availableBalance -= Number(amount);
+
+        wallet.totalSpent += Number(amount);
+
+        wallet.lastTransactionDate = new Date();
+
+        await wallet.save();
+
+        res.status(200).json({
+
+            success: true,
+
+            message: "Wallet debited successfully.",
+
+            data: wallet
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
