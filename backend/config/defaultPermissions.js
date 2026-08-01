@@ -37,7 +37,30 @@ const defaultPermissions = [
     // ==========================
     { module: "payments", action: "view", description: "View payments" },
     { module: "payments", action: "approve", description: "Approve payments" },
-
+  
+    // ==========================
+    // Transactions
+    // ==========================
+    { module: "transactions", action: "view", description: "View transactions" },
+    { module: "transactions", action: "export", description: "Export transactions" },
+    { module: "transactions", action: "manage", description: "Manage transactions" },
+  
+    // ==========================
+    // Wallets
+    // ==========================
+    { module: "wallets", action: "view", description: "View wallets" },
+    { module: "wallets", action: "credit", description: "Credit wallets" },
+    { module: "wallets", action: "debit", description: "Debit wallets" },
+    { module: "wallets", action: "freeze", description: "Freeze wallets" },
+    { module: "wallets", action: "manage", description: "Manage wallets" },
+    // ==========================
+    // Withdrawals
+    // ==========================
+    { module: "withdrawals", action: "view", description: "View withdrawals" },
+    { module: "withdrawals", action: "approve", description: "Approve withdrawals" },
+    { module: "withdrawals", action: "reject", description: "Reject withdrawals" },
+    { module: "withdrawals", action: "manage", description: "Manage withdrawals" },
+    
     // ==========================
     // Warehouse
     // ==========================
@@ -56,6 +79,70 @@ const defaultPermissions = [
     { module: "suppliers", action: "view", description: "View suppliers" },
     { module: "suppliers", action: "create", description: "Create suppliers" },
     { module: "suppliers", action: "edit", description: "Edit suppliers" },
+
+    // ==========================
+    // Coupons
+    // ==========================
+    { module: "coupons", action: "view", description: "View coupons" },
+    { module: "coupons", action: "create", description: "Create coupons" },
+    { module: "coupons", action: "edit", description: "Edit coupons" },
+    { module: "coupons", action: "delete", description: "Delete coupons" },
+
+    // ==========================
+    // Reviews
+    // ==========================
+    { module: "reviews", action: "view", description: "View reviews" },
+    { module: "reviews", action: "manage", description: "Manage reviews" },
+
+    // ==========================
+    // Notifications
+    // ==========================
+    { module: "notifications", action: "view", description: "View notifications" },
+    { module: "notifications", action: "send", description: "Send notifications" },
+    { module: "notifications", action: "delete", description: "Delete notifications" },
+
+    // ==========================
+    // Shipping
+    // ==========================
+    { module: "shipping", action: "view", description: "View shipping" },
+    { module: "shipping", action: "manage", description: "Manage shipping" },
+
+    // ==========================
+    // Addresses
+    // ==========================
+    { module: "addresses", action: "view", description: "View addresses" },
+    { module: "addresses", action: "manage", description: "Manage addresses" },
+
+    // ==========================
+    // Wishlist
+    // ==========================
+    { module: "wishlists", action: "view", description: "View wishlists" },
+    { module: "wishlists", action: "manage", description: "Manage wishlists" },
+
+    // ==========================
+    // Cart
+    // ==========================
+    { module: "carts", action: "view", description: "View carts" },
+    { module: "carts", action: "manage", description: "Manage carts" },
+
+    // ==========================
+    // KYC
+    // ==========================
+    { module: "kyc", action: "view", description: "View KYC" },
+    { module: "kyc", action: "approve", description: "Approve KYC" },
+    { module: "kyc", action: "reject", description: "Reject KYC" },
+
+    // ==========================
+    // Uploads
+    // ==========================
+    { module: "uploads", action: "view", description: "View uploads" },
+    { module: "uploads", action: "manage", description: "Manage uploads" },
+
+    // ==========================
+    // Reports
+    // ==========================
+    { module: "reports", action: "view", description: "View reports" },
+    { module: "reports", action: "export", description: "Export reports" },
 
     // ==========================
     // Categories
