@@ -5976,3 +5976,80 @@ exports.exportWallets = async (req, res) => {
     }
 
 };
+
+
+// ======================================================
+// Withdrawal Dashboard
+// ======================================================
+
+exports.getWithdrawalDashboard = async (req, res) => {
+
+    try {
+
+        const totalWithdrawals = await Withdrawal.countDocuments();
+
+        const pendingWithdrawals = await Withdrawal.countDocuments({
+
+            status: "pending"
+
+        });
+
+        const processingWithdrawals = await Withdrawal.countDocuments({
+
+            status: "processing"
+
+        });
+
+        const completedWithdrawals = await Withdrawal.countDocuments({
+
+            status: "completed"
+
+        });
+
+        const rejectedWithdrawals = await Withdrawal.countDocuments({
+
+            status: "rejected"
+
+        });
+
+        const failedWithdrawals = await Withdrawal.countDocuments({
+
+            status: "failed"
+
+        });
+
+        res.status(200).json({
+
+            success: true,
+
+            data: {
+
+                totalWithdrawals,
+
+                pendingWithdrawals,
+
+                processingWithdrawals,
+
+                completedWithdrawals,
+
+                rejectedWithdrawals,
+
+                failedWithdrawals
+
+            }
+
+        });
+
+    } catch (error) {
+
+        res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
