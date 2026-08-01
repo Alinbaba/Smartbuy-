@@ -23,4 +23,11 @@ router.get(
     adminController.getWalletById
 );
 
+router.patch(
+    "/wallets/:id/credit",
+    protect,
+    authorize("wallets.credit"),
+    adminController.creditWallet
+);
+
 module.exports = router;
