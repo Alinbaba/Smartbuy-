@@ -182,9 +182,9 @@ exports.getAllWithdrawals = async (req, res) => {
     }
 
 };
-// =====================================
-// Approve Withdrawal
-// =====================================
+// ======================================================
+// Approve Withdrawal (Enterprise Version)
+// ======================================================
 
 exports.approveWithdrawal = async (req, res) => {
 
@@ -205,48 +205,201 @@ exports.approveWithdrawal = async (req, res) => {
 
         }
 
-        if (withdrawal.status !== "processing") {
 
-    return res.status(400).json({
+        if (withdrawal.status !== "pending") {
 
-        success: false,
-        message: "Withdrawal must be approved before completion."
+            return res.status(400).json({
 
-    });
+                success: false,
+
+                message: "Only pending withdrawals can be approved."
+
+            });
 
         }
 
 
-        withdrawal.status = "processing";
+        const result = await executeFinancialTransaction(
 
-        withdrawal.approvedBy = req.user.id;
-
-        withdrawal.approvedAt = new Date();
+            async (session) => {
 
 
-        await withdrawal.save();
+                const wallet = await Wallet.findById(
+
+                    withdrawal.wallet
+
+                ).session(session);
 
 
-        res.status(200).json({
+
+                if (!wallet) {
+
+                    throw new Error(
+                        "Wallet not found."
+                    );
+
+                }
+
+
+                if (wallet.availableBalance < withdrawal.amount) {
+
+                    throw new Error(
+                        "Insufficient wallet balance."
+                    );
+
+                }
+
+
+
+                const balanceBefore = wallet.availableBalance;
+
+                // ==========================
+                // Deduct Wallet Balance
+                // ==========================
+
+                wallet.availableBalance -= withdrawal.amount;
+
+                wallet.totalWithdrawn += withdrawal.amount;
+
+                wallet.lastWithdrawalDate = new Date();
+
+
+
+                await wallet.save({
+
+                    session
+
+                });
+
+
+
+                // ==========================
+                // Create Transaction Record
+                // ==========================
+
+                const transaction = await Transaction.create([{
+
+                    user: withdrawal.user,
+
+                    wallet: wallet._id,
+
+                    amount: withdrawal.amount,
+
+                    currency: withdrawal.currency,
+
+                    transactionType: "withdrawal",
+
+                    paymentMethod: "wallet",
+
+                    transactionDirection: "debit",
+
+                    status: "successful",
+
+                    balanceBefore,
+
+                    balanceAfter: wallet.availableBalance,
+
+                    description:
+                    "Wallet withdrawal approved",
+
+                    performedBy: req.user._id
+
+
+                }], {
+
+                    session
+
+                });
+
+
+
+                // ==========================
+                // Update Withdrawal
+                // ==========================
+
+                withdrawal.status = "completed";
+
+                withdrawal.approvedBy = req.user._id;
+
+                withdrawal.approvedAt = new Date();
+
+                withdrawal.completedBy = req.user._id;
+
+                withdrawal.completedAt = new Date();
+
+                withdrawal.transaction = transaction[0]._id;
+
+
+
+                await withdrawal.save({
+
+                    session
+
+                });
+
+
+
+                // ==========================
+                // Audit Log
+                // ==========================
+
+                await createAuditLog({
+
+                    req,
+
+                    user: req.user,
+
+                    action: "APPROVE_WITHDRAWAL",
+
+                    module: "withdrawal",
+
+                    description:
+                    "Withdrawal approved successfully",
+
+                    targetModel: "Withdrawal",
+
+                    targetId: withdrawal._id,
+
+                    targetName: withdrawal.withdrawalId
+
+                });
+
+
+
+                return withdrawal;
+
+
+            }
+
+        );
+
+
+
+        return res.status(200).json({
 
             success: true,
 
-            message: "Withdrawal approved and processing.",
+            message:
+            "Withdrawal approved successfully.",
 
-            withdrawal
+            data: result
+
 
         });
 
 
+
     } catch (error) {
 
-        res.status(500).json({
+
+        return res.status(500).json({
 
             success: false,
 
             message: error.message
 
         });
+
 
     }
 
