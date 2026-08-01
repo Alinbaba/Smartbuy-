@@ -30,4 +30,10 @@ router.patch(
     adminController.creditWallet
 );
 
+router.patch(
+    "/wallets/:id/debit",
+    protect,
+    authorize("wallets.debit"),
+    adminController.debitWallet
+);
 module.exports = router;
