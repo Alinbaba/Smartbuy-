@@ -139,7 +139,73 @@ paymentReference: {
     default: ""
 },
 
+// =====================================
+// Related Transaction
+// =====================================
 
+transaction: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Transaction"
+},
+
+  // =====================================
+// Processing Fee
+// =====================================
+
+processingFee: {
+    type: Number,
+    default: 0,
+    min: 0
+},
+
+  // =====================================
+// Net Amount Received
+// =====================================
+
+netAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+},
+
+  // =====================================
+// Failure Reason
+// =====================================
+
+failureReason: {
+    type: String,
+    default: ""
+},
+
+  // =====================================
+// Retry Count
+// =====================================
+
+retryCount: {
+    type: Number,
+    default: 0,
+    min: 0
+},
+
+  // =====================================
+// Estimated Completion Time
+// =====================================
+
+estimatedCompletion: {
+    type: Date,
+    default: null
+},
+
+  // =====================================
+// Processing Duration (Milliseconds)
+// =====================================
+
+processingDuration: {
+    type: Number,
+    default: 0,
+    min: 0
+},
+  
 // =====================================
 // Gateway Information
 // =====================================
