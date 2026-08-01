@@ -65,4 +65,11 @@ router.get(
     adminController.exportWallets
 );
 
+router.get(
+    "/withdrawals/dashboard",
+    protect,
+    authorize("withdrawals.view"),
+    adminController.getWithdrawalDashboard
+);
+
 module.exports = router;
