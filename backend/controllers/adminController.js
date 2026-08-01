@@ -24,7 +24,8 @@ const Cart = require("../models/Cart");
 const Notification = require("../models/Notification");
 const KYC = require("../models/KYC");
 const exportService = require("../services/exportService");
-const auditLog = require("../utils/auditLog");
+const createAuditLog = require("../utils/auditLog");
+const executeFinancialTransaction = require("../utils/financialTransaction");
 
 // ======================================================
 // Dashboard Overview
@@ -5294,7 +5295,19 @@ exports.creditWallet = async (req, res) => {
 
         wallet.lastTransactionDate = new Date();
 
-        await wallet.save();
+        const result = await executeFinancialTransaction(async (session) => {
+
+        wallet.availableBalance += Number(amount);
+
+        wallet.totalEarned += Number(amount);
+
+        wallet.lastTransactionDate = new Date();
+
+       await wallet.save({ session });
+
+       return wallet;
+
+});
 
         res.status(200).json({
 
@@ -5302,7 +5315,7 @@ exports.creditWallet = async (req, res) => {
 
             message: "Wallet credited successfully.",
 
-            data: wallet
+            data: result
 
         });
 
