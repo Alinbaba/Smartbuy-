@@ -5546,3 +5546,366 @@ exports.unfreezeWallet = async (req, res) => {
     }
 
 };
+
+// ======================================================
+// Wallet Analytics
+// ======================================================
+
+exports.getWalletAnalytics = async (req, res) => {
+
+    try {
+
+        const analytics = await Wallet.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: null,
+
+                    totalWallets: {
+                        $sum: 1
+                    },
+
+                    totalAvailableBalance: {
+                        $sum: "$availableBalance"
+                    },
+
+                    totalPendingBalance: {
+                        $sum: "$pendingBalance"
+                    },
+
+                    totalFrozenBalance: {
+                        $sum: "$frozenBalance"
+                    },
+
+                    totalEarned: {
+                        $sum: "$totalEarned"
+                    },
+
+                    totalSpent: {
+                        $sum: "$totalSpent"
+                    },
+
+                    totalWithdrawn: {
+                        $sum: "$totalWithdrawn"
+                    },
+
+                    totalRewardPoints: {
+                        $sum: "$rewardPoints"
+                    },
+
+                    totalCashback: {
+                        $sum: "$cashbackBalance"
+                    }
+
+                }
+
+            }
+
+        ]);
+
+
+
+        const walletTypes = await Wallet.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: "$walletType",
+
+                    total: {
+                        $sum: 1
+                    }
+
+                }
+
+            }
+
+        ]);
+
+
+
+        const kycStatus = await Wallet.aggregate([
+
+            {
+
+                $group: {
+
+                    _id: "$kycStatus",
+
+                    total: {
+                        $sum: 1
+                    }
+
+                }
+
+            }
+
+        ]);
+
+
+
+        const activeWallets = await Wallet.countDocuments({
+
+            isLocked: false
+
+        });
+
+
+
+        const lockedWallets = await Wallet.countDocuments({
+
+            isLocked: true
+
+        });
+
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            data: {
+
+                overview: analytics[0] || {},
+
+                walletTypes,
+
+                kycStatus,
+
+                activeWallets,
+
+                lockedWallets
+
+            }
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// ======================================================
+// Export Wallets (CSV / Excel / PDF)
+// ======================================================
+
+exports.exportWallets = async (req, res) => {
+
+    try {
+
+        const {
+
+            format = "csv",
+            walletType,
+            currency,
+            isActive,
+            isLocked,
+            kycStatus
+
+        } = req.query;
+
+        const filter = {};
+
+        if (walletType) {
+
+            filter.walletType = walletType;
+
+        }
+
+        if (currency) {
+
+            filter.currency = currency;
+
+        }
+
+        if (typeof isActive !== "undefined") {
+
+            filter.isActive = isActive === "true";
+
+        }
+
+        if (typeof isLocked !== "undefined") {
+
+            filter.isLocked = isLocked === "true";
+
+        }
+
+        if (kycStatus) {
+
+            filter.kycStatus = kycStatus;
+
+        }
+
+        const wallets = await Wallet.find(filter)
+
+            .populate(
+                "user",
+                "firstName lastName email"
+            )
+
+            .sort({
+                createdAt: -1
+            });
+
+        // ==========================================
+        // CSV
+        // ==========================================
+
+        if (format === "csv") {
+
+            const fields = [
+
+                "walletId",
+                "walletType",
+                "currency",
+                "availableBalance",
+                "pendingBalance",
+                "frozenBalance",
+                "totalEarned",
+                "totalSpent",
+                "isActive",
+                "isLocked"
+
+            ];
+
+            const csv = exportService.generateCSV(
+
+                wallets,
+
+                fields
+
+            );
+
+            res.header(
+
+                "Content-Type",
+
+                "text/csv"
+
+            );
+
+            res.attachment("wallets.csv");
+
+            return res.send(csv);
+
+        }
+
+        // ==========================================
+        // Excel
+        // ==========================================
+
+        if (format === "excel") {
+
+            const workbook = await exportService.generateExcel(
+
+                "Wallets",
+
+                [
+
+                    { header: "Wallet ID", key: "walletId" },
+
+                    { header: "Wallet Type", key: "walletType" },
+
+                    { header: "Balance", key: "availableBalance" },
+
+                    { header: "Currency", key: "currency" },
+
+                    { header: "Status", key: "isActive" }
+
+                ],
+
+                wallets
+
+            );
+
+            res.setHeader(
+
+                "Content-Type",
+
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+            );
+
+            res.setHeader(
+
+                "Content-Disposition",
+
+                "attachment; filename=wallets.xlsx"
+
+            );
+
+            return workbook.xlsx.write(res);
+
+        }
+
+        // ==========================================
+        // PDF
+        // ==========================================
+
+        if (format === "pdf") {
+
+            const pdf = exportService.generatePDF(
+
+                "SmartBuy Wallet Report",
+
+                wallets
+
+            );
+
+            res.setHeader(
+
+                "Content-Type",
+
+                "application/pdf"
+
+            );
+
+            res.setHeader(
+
+                "Content-Disposition",
+
+                "attachment; filename=wallets.pdf"
+
+            );
+
+            pdf.pipe(res);
+
+            pdf.end();
+
+            return;
+
+        }
+
+        return res.status(400).json({
+
+            success: false,
+
+            message: "Invalid export format."
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
