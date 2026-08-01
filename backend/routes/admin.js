@@ -36,4 +36,12 @@ router.patch(
     authorize("wallets.debit"),
     adminController.debitWallet
 );
+
+router.patch(
+    "/wallets/:id/freeze",
+    protect,
+    authorize("wallets.freeze"),
+    adminController.freezeWallet
+);
+
 module.exports = router;
