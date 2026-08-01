@@ -16,4 +16,11 @@ router.get(
     adminController.exportTransactions
 );
 
+router.get(
+    "/wallets/:id",
+    protect,
+    authorize("wallets.view"),
+    adminController.getWalletById
+);
+
 module.exports = router;
