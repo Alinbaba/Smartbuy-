@@ -153,6 +153,7 @@ paymentReference: {
 transaction: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Transaction"
+    default: null
 },
 
   // =====================================
