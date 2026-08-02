@@ -93,19 +93,26 @@ withdrawalId: {
     // =====================================
 
     status: {
-        type: String,
-        enum: [
+    type: String,
+    enum: [
 
-            "pending",
-            "processing",
-            "completed",
-            "failed",
-            "cancelled",
-            "rejected"
+        "pending",
 
-        ],
-        default: "pending"
-    },
+        "approved",
+
+        "processing",
+
+        "completed",
+
+        "failed",
+
+        "cancelled",
+
+        "rejected"
+
+    ],
+    default: "pending"
+},
 // =====================================
 // Bank / Payout Details
 // =====================================
