@@ -152,7 +152,7 @@ paymentReference: {
 
 transaction: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "Transaction"
+    ref: "Transaction",
     default: null
 },
 
@@ -313,7 +313,36 @@ rejectionReason: {
 
 },
 
+// =====================================
+// Cancellation Information
+// =====================================
 
+cancelledBy: {
+
+    type: mongoose.Schema.Types.ObjectId,
+
+    ref: "User",
+
+    default: null
+
+},
+
+cancelledAt: {
+
+    type: Date,
+
+    default: null
+
+},
+
+cancellationReason: {
+
+    type: String,
+
+    default: ""
+
+},
+  
 // =====================================
 // Audit Information
 // =====================================
