@@ -544,6 +544,126 @@ exports.rejectWithdrawal = async (req, res) => {
 };
 
 // =====================================
+// Cancel Withdrawal (Enterprise)
+// =====================================
+
+exports.cancelWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal = await Withdrawal.findById(req.params.id);
+
+        // =====================================
+        // Check Withdrawal
+        // =====================================
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Withdrawal not found."
+
+            });
+
+        }
+
+        // =====================================
+        // Only Pending Withdrawals Can Be Cancelled
+        // =====================================
+
+        if (withdrawal.status !== "pending") {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only pending withdrawals can be cancelled."
+
+            });
+
+        }
+
+        // =====================================
+        // Update Withdrawal
+        // =====================================
+
+        withdrawal.status = "cancelled";
+
+        withdrawal.cancelledBy = req.user._id;
+
+        withdrawal.cancelledAt = new Date();
+
+        withdrawal.cancellationReason =
+            req.body.cancellationReason ||
+            "Withdrawal cancelled by user.";
+
+        await withdrawal.save();
+
+        // =====================================
+        // Audit Log
+        // =====================================
+
+        await createAuditLog({
+
+            req,
+
+            user: req.user,
+
+            action: "CANCEL_WITHDRAWAL",
+
+            module: "withdrawal",
+
+            description:
+                "Withdrawal request cancelled.",
+
+            targetModel: "Withdrawal",
+
+            targetId: withdrawal._id,
+
+            targetName: withdrawal.withdrawalId,
+
+            metadata: {
+
+                cancellationReason:
+                    withdrawal.cancellationReason
+
+            }
+
+        });
+
+        // =====================================
+        // Response
+        // =====================================
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal cancelled successfully.",
+
+            withdrawal
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// =====================================
 // Complete Withdrawal (Enterprise)
 // =====================================
 
