@@ -664,6 +664,251 @@ exports.cancelWithdrawal = async (req, res) => {
 };
 
 // =====================================
+// Fail Withdrawal (Enterprise)
+// =====================================
+
+exports.failWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal = await Withdrawal.findById(req.params.id);
+
+        
+        // =====================================
+        // Check Withdrawal
+        // =====================================
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Withdrawal not found."
+
+            });
+
+        }
+
+        // =====================================
+        // Only Processing Withdrawals Can Fail
+        // =====================================
+
+        if (withdrawal.status !== "processing") {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only processing withdrawals can be marked as failed."
+
+            });
+
+        }
+
+        // =====================================
+        // Failure Reason
+        // =====================================
+
+        const reason =
+            req.body.failureReason ||
+            "Withdrawal processing failed.";
+
+        // =====================================
+        // Update Withdrawal
+        // =====================================
+
+        withdrawal.status = "failed";
+
+        withdrawal.failureReason = reason;
+
+        await withdrawal.save();
+
+        // =====================================
+        // Audit Log
+        // =====================================
+
+        await createAuditLog({
+
+            req,
+
+            user: req.user,
+
+            action: "FAIL_WITHDRAWAL",
+
+            module: "withdrawal",
+
+            description:
+                "Withdrawal processing failed.",
+
+            targetModel: "Withdrawal",
+
+            targetId: withdrawal._id,
+
+            targetName: withdrawal.withdrawalId,
+
+            metadata: {
+
+                failureReason: reason
+
+            }
+
+        });
+
+        // =====================================
+        // Response
+        // =====================================
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal marked as failed.",
+
+            withdrawal
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+}; 
+
+// =====================================
+// Retry Failed Withdrawal (Enterprise)
+// =====================================
+
+exports.retryFailedWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal = await Withdrawal.findById(req.params.id);
+
+        // =====================================
+        // Check Withdrawal
+        // =====================================
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Withdrawal not found."
+
+            });
+
+        }
+
+        // =====================================
+        // Only Failed Withdrawals Can Be Retried
+        // =====================================
+
+        if (withdrawal.status !== "failed") {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only failed withdrawals can be retried."
+
+            });
+
+        }
+
+        // =====================================
+        // Increase Retry Count
+        // =====================================
+
+        withdrawal.retryCount += 1;
+
+        // =====================================
+        // Return Withdrawal To Processing
+        // =====================================
+
+        withdrawal.status = "processing";
+
+        withdrawal.failureReason = "";
+
+        withdrawal.estimatedCompletion = new Date(
+            Date.now() + (30 * 60 * 1000)
+        );
+
+        await withdrawal.save();
+
+        // =====================================
+        // Audit Log
+        // =====================================
+
+        await createAuditLog({
+
+            req,
+
+            user: req.user,
+
+            action: "RETRY_WITHDRAWAL",
+
+            module: "withdrawal",
+
+            description:
+                "Failed withdrawal was retried and returned to processing.",
+
+            targetModel: "Withdrawal",
+
+            targetId: withdrawal._id,
+
+            targetName: withdrawal.withdrawalId,
+
+            metadata: {
+
+                retryCount: withdrawal.retryCount
+
+            }
+
+        });
+
+        // =====================================
+        // Response
+        // =====================================
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal retry started successfully.",
+
+            withdrawal
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+// =====================================
 // Complete Withdrawal (Enterprise)
 // =====================================
 
