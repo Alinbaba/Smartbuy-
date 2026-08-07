@@ -333,10 +333,10 @@ await withdrawal.save({
 
 
 // =====================================
-// Reject Withdrawal
+// Process Withdrawal (Enterprise)
 // =====================================
 
-exports.rejectWithdrawal = async (req, res) => {
+exports.processWithdrawal = async (req, res) => {
 
     try {
 
@@ -345,34 +345,204 @@ exports.rejectWithdrawal = async (req, res) => {
         if (!withdrawal) {
 
             return res.status(404).json({
+
                 success: false,
+
                 message: "Withdrawal not found."
+
             });
 
         }
 
-        withdrawal.status = "rejected";
-        withdrawal.rejectedBy = req.user.id;
-        withdrawal.rejectedAt = new Date();
+        // Only approved withdrawals can be processed
+
+        if (withdrawal.status !== "approved") {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Only approved withdrawals can be processed."
+
+            });
+
+        }
+
+        withdrawal.status = "processing";
 
         await withdrawal.save();
 
-        res.status(200).json({
+        // Audit Log
+
+        await createAuditLog({
+
+            req,
+
+            user: req.user,
+
+            action: "PROCESS_WITHDRAWAL",
+
+            module: "withdrawal",
+
+            description: "Withdrawal is now being processed.",
+
+            targetModel: "Withdrawal",
+
+            targetId: withdrawal._id,
+
+            targetName: withdrawal.withdrawalId
+
+        });
+
+        return res.status(200).json({
+
             success: true,
-            message: "Withdrawal rejected successfully.",
+
+            message: "Withdrawal moved to processing.",
+
             withdrawal
+
         });
 
     } catch (error) {
 
-        res.status(500).json({
+        return res.status(500).json({
+
             success: false,
+
             message: error.message
+
         });
 
     }
 
 };
+
+// =====================================
+// Reject Withdrawal (Enterprise)
+// =====================================
+
+exports.rejectWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal = await Withdrawal.findById(req.params.id);
+
+        // =====================================
+        // Check Withdrawal
+        // =====================================
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Withdrawal not found."
+
+            });
+
+        }
+
+        // =====================================
+        // Only Pending Withdrawals Can Be Rejected
+        // =====================================
+
+        if (withdrawal.status !== "pending") {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only pending withdrawals can be rejected."
+
+            });
+
+        }
+
+        // =====================================
+        // Rejection Reason
+        // =====================================
+
+        const reason =
+            req.body.rejectionReason ||
+            "Withdrawal rejected by administrator.";
+
+        // =====================================
+        // Update Withdrawal
+        // =====================================
+
+        withdrawal.status = "rejected";
+
+        withdrawal.rejectedBy = req.user._id;
+
+        withdrawal.rejectedAt = new Date();
+
+        withdrawal.rejectionReason = reason;
+
+        await withdrawal.save();
+
+        // =====================================
+        // Audit Log
+        // =====================================
+
+        await createAuditLog({
+
+            req,
+
+            user: req.user,
+
+            action: "REJECT_WITHDRAWAL",
+
+            module: "withdrawal",
+
+            description:
+                "Withdrawal request rejected.",
+
+            targetModel: "Withdrawal",
+
+            targetId: withdrawal._id,
+
+            targetName: withdrawal.withdrawalId,
+
+            metadata: {
+
+                rejectionReason: reason
+
+            }
+
+        });
+
+        // =====================================
+        // Response
+        // =====================================
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal rejected successfully.",
+
+            withdrawal
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
 // =====================================
 // Complete Withdrawal (Enterprise)
 // =====================================
@@ -395,19 +565,7 @@ exports.completeWithdrawal = async (req, res) => {
 
         }
 
-        // Only approved withdrawals can be completed
-
-        if (withdrawal.status !== "approved") {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message: "Only approved withdrawals can be completed."
-
-            });
-
-        }
+       
 
         const result = await executeFinancialTransaction(
 
@@ -427,7 +585,19 @@ exports.completeWithdrawal = async (req, res) => {
 
                     throw new Error("Wallet not found.");
 
-                }
+   // Only processing withdrawals can be completed
+
+if (withdrawal.status !== "processing") {
+
+    return res.status(400).json({
+
+        success: false,
+
+        message: "Only processing withdrawals can be completed."
+
+    });
+
+}             }
 
                 if (wallet.availableBalance < withdrawal.amount) {
 
