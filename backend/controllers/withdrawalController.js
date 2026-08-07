@@ -669,7 +669,7 @@ exports.getWithdrawalById = async (req, res) => {
                 success: false,
 
                 message: "Withdrawal not found."
-
+            
             });
 
         }
