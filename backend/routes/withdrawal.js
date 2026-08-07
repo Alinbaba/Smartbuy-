@@ -2,140 +2,240 @@ const express = require("express");
 
 const router = express.Router();
 
+// =====================================
+// Withdrawal Controller
+// =====================================
 
 const {
 
-    createWithdrawal,
-    getMyWithdrawals,
-    getAllWithdrawals,
-    approveWithdrawal,
-    completeWithdrawal,
-    rejectWithdrawal,
-    getWithdrawalSummary,
-    getWithdrawalById
+createWithdrawal,
+
+getMyWithdrawals,
+
+getAllWithdrawals,
+
+getWithdrawalSummary,
+
+getWithdrawalById,
+
+approveWithdrawal,
+
+processWithdrawal,
+
+rejectWithdrawal,
+
+cancelWithdrawal,
+
+failWithdrawal,
+
+retryFailedWithdrawal,
+
+completeWithdrawal
 
 } = require("../controllers/withdrawalController");
 
+// =====================================
+// Authentication Middleware
+// =====================================
+
 const { protect } = require("../middleware/authMiddleware");
+
+// =====================================
+// Authorization Middleware
+// =====================================
+
 const { authorize } = require("../middleware/authorize");
-// =====================================
-// User Withdrawal Routes
-// =====================================
 
+// ======================================================
+// USER WITHDRAWAL ROUTES
+// ======================================================
 
+// =====================================
 // Create Withdrawal Request
+// =====================================
 
 router.post(
 
-    "/",
+"/",
 
-    protect,
+protect,
 
-    createWithdrawal
+createWithdrawal
 
 );
 
-
+// =====================================
 // Get My Withdrawals
+// =====================================
 
 router.get(
 
-    "/my-withdrawals",
+"/my-withdrawals",
 
-    protect,
+protect,
 
-    getMyWithdrawals
+getMyWithdrawals
 
 );
 
-
-// Get Withdrawal Summary
+// =====================================
+// Get My Withdrawal Summary
+// =====================================
 
 router.get(
 
-    "/summary",
+"/summary",
 
-    protect,
+protect,
 
-    getWithdrawalSummary
+getWithdrawalSummary
 
 );
 
-
+// =====================================
 // Get Single Withdrawal
+// =====================================
 
 router.get(
 
-    "/:id",
+"/:id",
 
-    protect,
+protect,
 
-    getWithdrawalById
+getWithdrawalById
 
 );
-// =====================================
-// Admin Withdrawal Routes
-// =====================================
 
+// ======================================================
+// ADMIN WITHDRAWAL MANAGEMENT
+// ======================================================
 
+// =====================================
 // Get All Withdrawals
+// =====================================
 
 router.get(
 
-    "/",
+"/",
 
-    protect,
+protect,
 
-    authorize("payments.view"),
+authorize("payments.view"),
 
-    getAllWithdrawals
+getAllWithdrawals
 
 );
 
-
+// =====================================
 // Approve Withdrawal
+// =====================================
 
 router.put(
 
-    "/:id/approve",
+"/:id/approve",
 
-    protect,
+protect,
 
-    authorize("payments.manage"),
+authorize("payments.manage"),
 
-    approveWithdrawal
+approveWithdrawal
 
 );
 
+// =====================================
+// Process Withdrawal
+// =====================================
 
+router.put(
+
+"/:id/process",
+
+protect,
+
+authorize("payments.manage"),
+
+processWithdrawal
+
+);
+
+// =====================================
 // Complete Withdrawal
+// =====================================
 
 router.put(
 
-    "/:id/complete",
+"/:id/complete",
 
-    protect,
+protect,
 
-    authorize("payments.manage"),
+authorize("payments.manage"),
 
-    completeWithdrawal
+completeWithdrawal
 
 );
 
-
+// =====================================
 // Reject Withdrawal
+// =====================================
 
 router.put(
 
-    "/:id/reject",
+"/:id/reject",
 
-    protect,
+protect,
 
-    authorize("payments.manage"),
+authorize("payments.manage"),
 
-    rejectWithdrawal
+rejectWithdrawal
 
 );
+
+// =====================================
+// Cancel Withdrawal
+// =====================================
+
+router.put(
+
+"/:id/cancel",
+
+protect,
+
+cancelWithdrawal
+
+);
+
+// =====================================
+// Mark Withdrawal As Failed
+// =====================================
+
+router.put(
+
+"/:id/fail",
+
+protect,
+
+authorize("payments.manage"),
+
+failWithdrawal
+
+);
+
+// =====================================
+// Retry Failed Withdrawal
+// =====================================
+
+router.put(
+
+"/:id/retry",
+
+protect,
+
+authorize("payments.manage"),
+
+retryFailedWithdrawal
+
+);
+
 // =====================================
 // Export Router
 // =====================================
