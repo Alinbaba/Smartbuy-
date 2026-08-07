@@ -1,315 +1,215 @@
 // ==========================================
-// SmartBuy Enterprise Audit Log Helper v2
+// SmartBuy Enterprise Audit Log Helper
 // ==========================================
 //
 // Purpose:
-// This utility creates audit records across
-// the entire SmartBuy system.
+// Creates audit records across the SmartBuy
+// system.
 //
-// It can be used in:
-// - Authentication
-// - Wallet
-// - KYC
-// - Uploads
-// - Products
-// - Orders
-// - Payments
-// - Admin activities
+// IMPORTANT:
+// This helper supports MongoDB transactions.
 //
-// It automatically records:
-// - User information
-// - Action performed
-// - Module affected
-// - Device information
-// - Browser
-// - Operating system
-// - IP address
-// - API endpoint
-// - Before/After changes
+// When a session is provided, the audit record
+// becomes part of the same transaction.
+//
+// If the audit record fails, the financial
+// transaction can be rolled back.
 // ==========================================
 
-
-// Audit Log database model
-
 const AuditLog = require("../models/AuditLog");
-
-
-// Package for detecting device,
-// browser and operating system
-
 const UAParser = require("ua-parser-js");
 
 
-
 // ==========================================
-// Create Audit Log Function
+// Create Audit Log
 // ==========================================
 
 const createAuditLog = async ({
 
-    // Express request object
+    // Express request
     req,
 
-
-    // User who performed the action
+    // User performing the action
     user = null,
 
-
-    // Action name
-    // Example:
-    // LOGIN
-    // CREATE_PRODUCT
-    // CREDIT_WALLET
+    // Action
     action,
 
-
     // SmartBuy module
-    // Example:
-    // wallet
-    // products
-    // authentication
     module,
 
-
-    // Human readable explanation
+    // Human-readable description
     description,
 
-
-    // Result status
-    // success | failed | warning
+    // Audit status
     status = "success",
 
-
-    // Record affected by the action
-
+    // Target information
     targetModel = "",
-
     targetId = null,
-
     targetName = "",
 
-
-
-    // Data before update
-
+    // Before / After data
     oldValues = {},
-
-
-
-    // Data after update
-
     newValues = {},
 
-
-
-    // Fields that changed
-
+    // Changed fields
     changes = [],
 
-
-
     // Error information
-
     errorMessage = "",
-
     errorStack = "",
 
-
-
     // Additional information
+    metadata = {},
 
-    metadata = {}
+    // MongoDB transaction session
+    session = null
 
 }) => {
 
 
-    try {
+    // ==========================================
+    // Detect Request Information
+    // ==========================================
 
+    const parser = new UAParser(
+        req?.headers["user-agent"] || ""
+    );
 
-        // ==================================
-        // Detect Device Information
-        // ==================================
 
-        const parser = new UAParser(
+    const browser = parser.getBrowser();
 
-            req?.headers["user-agent"] || ""
+    const operatingSystem = parser.getOS();
 
-        );
+    const device = parser.getDevice();
 
 
-        const browser = parser.getBrowser();
+    // ==========================================
+    // Create Audit Record
+    // ==========================================
 
+    const auditData = {
 
-        const operatingSystem = parser.getOS();
+        // ======================================
+        // User Information
+        // ======================================
 
+        user: user?._id || null,
 
-        const device = parser.getDevice();
+        userId: user?.userId || "",
 
+        fullName: user?.fullName || "",
 
+        role: user?.role || "",
 
 
+        // ======================================
+        // Action Information
+        // ======================================
 
-        // ==================================
-        // Create Audit Record
-        // ==================================
+        action,
 
-        await AuditLog.create({
+        module,
 
+        description,
 
+        status,
 
-            // ==============================
-            // User Information
-            // ==============================
 
-            user: user?._id || null,
+        // ======================================
+        // Target Information
+        // ======================================
 
-            userId: user?.userId || "",
+        targetModel,
 
-            fullName: user?.fullName || "",
+        targetId,
 
-            role: user?.role || "",
+        targetName,
 
 
+        // ======================================
+        // Request Information
+        // ======================================
 
+        ipAddress:
+            req?.ip || "",
 
+        userAgent:
+            req?.headers["user-agent"] || "",
 
-            // ==============================
-            // Action Information
-            // ==============================
+        device:
+            device.type || "desktop",
 
-            action,
+        browser:
+            browser.name || "Unknown",
 
-            module,
+        operatingSystem:
+            operatingSystem.name || "Unknown",
 
-            description,
+        method:
+            req?.method || "",
 
-            status,
+        endpoint:
+            req?.originalUrl || "",
 
 
+        // ======================================
+        // Change Tracking
+        // ======================================
 
+        oldValues,
 
+        newValues,
 
-            // ==============================
-            // Target Information
-            // ==============================
+        changes,
 
-            targetModel,
 
-            targetId,
+        // ======================================
+        // Error Information
+        // ======================================
 
-            targetName,
+        errorMessage,
 
+        errorStack,
 
 
+        // ======================================
+        // Additional Information
+        // ======================================
 
+        metadata
 
-            // ==============================
-            // Request Information
-            // ==============================
+    };
 
-            ipAddress:
 
-                req?.ip || "",
+    // ==========================================
+    // Create Audit Log
+    // ==========================================
+    //
+    // If a session exists, the audit record is
+    // included inside the same MongoDB transaction.
+    //
+    // If there is no session, it works normally.
+    // ==========================================
 
+    const auditLog = new AuditLog(auditData);
 
-            userAgent:
 
-                req?.headers["user-agent"] || "",
+    await auditLog.save({
 
+        session
 
+    });
 
-            device:
 
-                device.type || "desktop",
-
-
-
-            browser:
-
-                browser.name || "Unknown",
-
-
-
-            operatingSystem:
-
-                operatingSystem.name || "Unknown",
-
-
-
-            method:
-
-                req?.method || "",
-
-
-
-            endpoint:
-
-                req?.originalUrl || "",
-
-
-
-
-
-            // ==============================
-            // Change Tracking
-            // ==============================
-
-            oldValues,
-
-            newValues,
-
-            changes,
-
-
-
-
-
-            // ==============================
-            // Error Information
-            // ==============================
-
-            errorMessage,
-
-            errorStack,
-
-
-
-
-
-            // ==============================
-            // Extra Data
-            // ==============================
-
-            metadata
-
-
-        });
-
-
-
-    } catch (error) {
-
-
-        // Audit failure should never
-        // crash the main application
-
-        console.error(
-
-            "Audit Log Creation Failed:",
-
-            error.message
-
-        );
-
-
-    }
-
+    return auditLog;
 
 };
 
 
-
-
-// Export helper
+// ==========================================
+// Export
+// ==========================================
 
 module.exports = createAuditLog;
