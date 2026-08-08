@@ -39,7 +39,7 @@ try {
         Number(amount) <= 0
     ) {
 
-        reurn res.status(400).json({
+        return res.status(400).json({
 
             success: false,
 
