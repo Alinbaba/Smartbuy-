@@ -2,242 +2,342 @@ const express = require("express");
 
 const router = express.Router();
 
-// =====================================
+// ======================================================
 // Withdrawal Controller
-// =====================================
+// ======================================================
 
 const {
 
-createWithdrawal,
+    // User operations
+    createWithdrawal,
+    getMyWithdrawals,
+    getWithdrawalSummary,
+    getWithdrawalById,
+    cancelWithdrawal,
 
-getMyWithdrawals,
-
-getAllWithdrawals,
-
-getWithdrawalSummary,
-
-getWithdrawalById,
-
-approveWithdrawal,
-
-processWithdrawal,
-
-rejectWithdrawal,
-
-cancelWithdrawal,
-
-failWithdrawal,
-
-retryFailedWithdrawal,
-
-completeWithdrawal
+    // Admin operations
+    getAllWithdrawals,
+    approveWithdrawal,
+    processWithdrawal,
+    completeWithdrawal,
+    rejectWithdrawal,
+    failWithdrawal,
+    retryFailedWithdrawal
 
 } = require("../controllers/withdrawalController");
 
-// =====================================
+
+// ======================================================
 // Authentication Middleware
-// =====================================
+// ======================================================
 
 const { protect } = require("../middleware/authMiddleware");
 
-// =====================================
+
+// ======================================================
 // Authorization Middleware
-// =====================================
+// ======================================================
 
 const { authorize } = require("../middleware/authorize");
+
 
 // ======================================================
 // USER WITHDRAWAL ROUTES
 // ======================================================
 
-// =====================================
+
+// ------------------------------------------------------
 // Create Withdrawal Request
-// =====================================
+// ------------------------------------------------------
+//
+// POST /api/withdrawals
+//
+// Accessible to authenticated users only.
+// ------------------------------------------------------
 
 router.post(
 
-"/",
+    "/",
 
-protect,
+    protect,
 
-createWithdrawal
+    createWithdrawal
 
 );
 
-// =====================================
-// Get My Withdrawals
-// =====================================
+
+// ------------------------------------------------------
+// Retrieve User Withdrawals
+// ------------------------------------------------------
+//
+// GET /api/withdrawals/my-withdrawals
+//
+// Accessible to authenticated users only.
+// ------------------------------------------------------
 
 router.get(
 
-"/my-withdrawals",
+    "/my-withdrawals",
 
-protect,
+    protect,
 
-getMyWithdrawals
+    getMyWithdrawals
 
 );
 
-// =====================================
-// Get My Withdrawal Summary
-// =====================================
+
+// ------------------------------------------------------
+// Retrieve Withdrawal Summary
+// ------------------------------------------------------
+//
+// GET /api/withdrawals/summary
+//
+// Accessible to authenticated users only.
+// ------------------------------------------------------
 
 router.get(
 
-"/summary",
+    "/summary",
 
-protect,
+    protect,
 
-getWithdrawalSummary
+    getWithdrawalSummary
 
 );
 
-// =====================================
-// Get Single Withdrawal
-// =====================================
+
+// ------------------------------------------------------
+// Retrieve Single Withdrawal
+// ------------------------------------------------------
+//
+// GET /api/withdrawals/:id
+//
+// The controller ensures the requesting user either
+// owns the withdrawal or has administrative privileges.
+// ------------------------------------------------------
 
 router.get(
 
-"/:id",
+    "/:id",
 
-protect,
+    protect,
 
-getWithdrawalById
+    getWithdrawalById
 
 );
+
+
+// ------------------------------------------------------
+// Cancel Withdrawal Request
+// ------------------------------------------------------
+//
+// PUT /api/withdrawals/:id/cancel
+//
+// The controller ensures the withdrawal belongs to the
+// authenticated user and is still in a pending state.
+// ------------------------------------------------------
+
+router.put(
+
+    "/:id/cancel",
+
+    protect,
+
+    cancelWithdrawal
+
+);
+
 
 // ======================================================
 // ADMIN WITHDRAWAL MANAGEMENT
 // ======================================================
 
-// =====================================
-// Get All Withdrawals
-// =====================================
+
+// ------------------------------------------------------
+// Retrieve All Withdrawals
+// ------------------------------------------------------
+//
+// GET /api/withdrawals
+//
+// Required permission:
+// payments.view
+// ------------------------------------------------------
 
 router.get(
 
-"/",
+    "/",
 
-protect,
+    protect,
 
-authorize("payments.view"),
+    authorize("payments.view"),
 
-getAllWithdrawals
+    getAllWithdrawals
 
 );
 
-// =====================================
+
+// ------------------------------------------------------
 // Approve Withdrawal
-// =====================================
+// ------------------------------------------------------
+//
+// PUT /api/withdrawals/:id/approve
+//
+// Required permission:
+// payments.manage
+//
+// State transition: pending → approved
+// ------------------------------------------------------
 
 router.put(
 
-"/:id/approve",
+    "/:id/approve",
 
-protect,
+    protect,
 
-authorize("payments.manage"),
+    authorize("payments.manage"),
 
-approveWithdrawal
+    approveWithdrawal
 
 );
 
-// =====================================
+
+// ------------------------------------------------------
 // Process Withdrawal
-// =====================================
+// ------------------------------------------------------
+//
+// PUT /api/withdrawals/:id/process
+//
+// Required permission:
+// payments.manage
+//
+// State transition: approved → processing
+// ------------------------------------------------------
 
 router.put(
 
-"/:id/process",
+    "/:id/process",
 
-protect,
+    protect,
 
-authorize("payments.manage"),
+    authorize("payments.manage"),
 
-processWithdrawal
+    processWithdrawal
 
 );
 
-// =====================================
+
+// ------------------------------------------------------
 // Complete Withdrawal
-// =====================================
+// ------------------------------------------------------
+//
+// PUT /api/withdrawals/:id/complete
+//
+// Required permission:
+// payments.manage
+//
+// State transition: processing → completed
+//
+// This operation performs financial settlement:
+// - Deducts wallet balance
+// - Updates wallet totals
+// - Creates a transaction record
+// - Links transaction to withdrawal
+// - Generates audit logs
+//
+// All financial operations are handled via the
+// centralized financial transaction engine.
+// ------------------------------------------------------
 
 router.put(
 
-"/:id/complete",
+    "/:id/complete",
 
-protect,
+    protect,
 
-authorize("payments.manage"),
+    authorize("payments.manage"),
 
-completeWithdrawal
+    completeWithdrawal
 
 );
 
-// =====================================
+
+// ------------------------------------------------------
 // Reject Withdrawal
-// =====================================
+// ------------------------------------------------------
+//
+// PUT /api/withdrawals/:id/reject
+//
+// Required permission:
+// payments.manage
+//
+// State transition: pending → rejected
+// ------------------------------------------------------
 
 router.put(
 
-"/:id/reject",
+    "/:id/reject",
 
-protect,
+    protect,
 
-authorize("payments.manage"),
+    authorize("payments.manage"),
 
-rejectWithdrawal
+    rejectWithdrawal
 
 );
 
-// =====================================
-// Cancel Withdrawal
-// =====================================
+
+// ------------------------------------------------------
+// Mark Withdrawal as Failed
+// ------------------------------------------------------
+//
+// PUT /api/withdrawals/:id/fail
+//
+// Required permission:
+// payments.manage
+//
+// State transition: processing → failed
+// ------------------------------------------------------
 
 router.put(
 
-"/:id/cancel",
+    "/:id/fail",
 
-protect,
+    protect,
 
-cancelWithdrawal
+    authorize("payments.manage"),
 
-);
-
-// =====================================
-// Mark Withdrawal As Failed
-// =====================================
-
-router.put(
-
-"/:id/fail",
-
-protect,
-
-authorize("payments.manage"),
-
-failWithdrawal
+    failWithdrawal
 
 );
 
-// =====================================
+
+// ------------------------------------------------------
 // Retry Failed Withdrawal
-// =====================================
+// ------------------------------------------------------
+//
+// PUT /api/withdrawals/:id/retry
+//
+// Required permission:
+// payments.manage
+//
+// State transition: failed → processing
+// ------------------------------------------------------
 
 router.put(
 
-"/:id/retry",
+    "/:id/retry",
 
-protect,
+    protect,
 
-authorize("payments.manage"),
+    authorize("payments.manage"),
 
-retryFailedWithdrawal
+    retryFailedWithdrawal
 
 );
 
-// =====================================
-// Export Router
-// =====================================
+
+// ======================================================
+// EXPORT ROUTER
+// ======================================================
 
 module.exports = router;
