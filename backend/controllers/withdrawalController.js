@@ -1,14 +1,43 @@
+// ======================================================
+// SmartBuy Enterprise Withdrawal Controller
+// ======================================================
+//
+// Responsibilities:
+// - Create withdrawal requests
+// - Retrieve user withdrawals
+// - Retrieve withdrawal by ID
+// - Retrieve all withdrawals (Admin)
+// - Approve withdrawal
+// - Process withdrawal
+// - Complete withdrawal
+// - Reject withdrawal
+// - Cancel withdrawal
+// - Mark withdrawal as failed
+// - Retry failed withdrawal
+// - Generate withdrawal summary
+//
+// IMPORTANT:
+// Wallet balance adjustments are executed ONLY upon
+// successful completion of a withdrawal within the
+// financial transaction engine.
+//
+// Comprehensive audit logging is enforced across all
+// operations in this controller.
+// ======================================================
+
+
 const Withdrawal = require("../models/Withdrawal");
 const Wallet = require("../models/Wallet");
 const Transaction = require("../models/Transaction");
 
 const executeFinancialTransaction = require(
-"../utils/financialTransaction"
+    "../utils/financialTransaction"
 );
 
 const createAuditLog = require(
-"../utils/auditLog"
+    "../utils/auditLog"
 );
+
 
 // ======================================================
 // CREATE WITHDRAWAL REQUEST
@@ -16,249 +45,291 @@ const createAuditLog = require(
 
 exports.createWithdrawal = async (req, res) => {
 
-try {
+    try {
 
-    const {
-        wallet,
-        amount,
-        currency,
-        withdrawalMethod,
-        description,
-        bankAccount,
-        paymentGateway
-    } = req.body;
+        const {
+            wallet,
+            amount,
+            currency,
+            withdrawalMethod,
+            description,
+            bankAccount,
+            paymentGateway
+        } = req.body;
 
 
-    // --------------------------------------------------
-    // Validate amount
-    // --------------------------------------------------
+        // --------------------------------------------------
+        // Validate wallet
+        // --------------------------------------------------
 
-    if (
-        amount === undefined ||
-        amount === null ||
-        Number(amount) <= 0
-    ) {
+        if (!wallet) {
 
-        return res.status(400).json({
+            return res.status(400).json({
 
-            success: false,
+                success: false,
 
-            message:
-                "Withdrawal amount must be greater than zero."
+                message: "Wallet is required."
 
-        });
+            });
 
-    }
+        }
 
 
-    const numericAmount = Number(amount);
+        // --------------------------------------------------
+        // Validate amount
+        // --------------------------------------------------
 
+        const withdrawalAmount = Number(amount);
 
-    // --------------------------------------------------
-    // Find wallet
-    // --------------------------------------------------
 
-    const walletData =
-        await Wallet.findById(wallet);
+        if (
+            !Number.isFinite(withdrawalAmount) ||
+            withdrawalAmount <= 0
+        ) {
 
+            return res.status(400).json({
 
-    if (!walletData) {
+                success: false,
 
-        return res.status(404).json({
+                message:
+                    "Withdrawal amount must be greater than zero."
 
-            success: false,
+            });
 
-            message: "Wallet not found."
+        }
 
-        });
 
-    }
+        // --------------------------------------------------
+        // Validate withdrawal method
+        // --------------------------------------------------
 
+        const allowedMethods = [
 
-    // --------------------------------------------------
-    // Wallet ownership security
-    // --------------------------------------------------
+            "bank-transfer",
+            "paypal",
+            "payoneer",
+            "stripe",
+            "flutterwave",
+            "paystack",
+            "manual"
 
-    if (
-        walletData.user.toString() !==
-        req.user._id.toString()
-    ) {
+        ];
 
-        return res.status(403).json({
 
-            success: false,
+        if (
+            !allowedMethods.includes(
+                withdrawalMethod
+            )
+        ) {
 
-            message:
-                "You are not authorized to use this wallet."
+            return res.status(400).json({
 
-        });
+                success: false,
 
-    }
+                message:
+                    "Invalid withdrawal method."
 
+            });
 
-    // --------------------------------------------------
-    // Check balance
-    // --------------------------------------------------
+        }
 
-    if (
-        Number(walletData.availableBalance) <
-        numericAmount
-    ) {
 
-        return res.status(400).json({
+        // --------------------------------------------------
+        // Retrieve wallet
+        // --------------------------------------------------
 
-            success: false,
+        const walletData =
+            await Wallet.findById(wallet);
 
-            message:
-                "Insufficient wallet balance."
 
-        });
+        if (!walletData) {
 
-    }
+            return res.status(404).json({
 
+                success: false,
 
-    // --------------------------------------------------
-    // Create withdrawal + audit atomically
-    // --------------------------------------------------
+                message: "Wallet not found."
 
-    const result =
-        await executeFinancialTransaction(
+            });
 
-            async (session) => {
+        }
 
-                const withdrawal =
-                    await Withdrawal.create(
 
-                        [{
+        // --------------------------------------------------
+        // SECURITY: Ensure wallet ownership
+        // --------------------------------------------------
 
-                            user:
-                                walletData.user,
+        if (
+            !walletData.user ||
+            walletData.user.toString() !==
+            req.user._id.toString()
+        ) {
 
-                            wallet:
-                                walletData._id,
+            return res.status(403).json({
 
-                            amount:
-                                numericAmount,
+                success: false,
 
-                            currency:
-                                currency ||
-                                walletData.currency ||
-                                "NGN",
+                message:
+                    "You are not authorized to use this wallet."
 
-                            withdrawalMethod,
+            });
 
-                            paymentGateway:
-                                paymentGateway ||
-                                "none",
+        }
 
-                            bankAccount:
-                                bankAccount ||
-                                {},
 
-                            description:
-                                description ||
-                                "",
+        // --------------------------------------------------
+        // Validate available balance
+        // --------------------------------------------------
 
-                            requestedBy:
-                                req.user._id,
+        if (
+            Number(walletData.availableBalance || 0) <
+            withdrawalAmount
+        ) {
 
-                            status:
-                                "pending"
+            return res.status(400).json({
 
-                        }],
+                success: false,
 
-                        {
-                            session
-                        }
+                message:
+                    "Insufficient wallet balance."
 
-                    );
+            });
 
+        }
 
-                const createdWithdrawal =
-                    withdrawal[0];
 
+        // --------------------------------------------------
+        // Determine currency
+        // --------------------------------------------------
 
-                // ------------------------------------------
-                // Audit
-                // ------------------------------------------
+        const withdrawalCurrency =
+            String(
+                currency ||
+                walletData.currency ||
+                "NGN"
+            ).toUpperCase();
 
-                await createAuditLog({
 
-                    req,
+        // --------------------------------------------------
+        // Create withdrawal record
+        // --------------------------------------------------
 
-                    user: req.user,
+        const withdrawal =
+            await Withdrawal.create({
 
-                    action:
-                        "CREATE_WITHDRAWAL",
+                user: walletData.user,
 
-                    module:
-                        "withdrawal",
+                wallet: walletData._id,
 
-                    description:
-                        "Withdrawal request created successfully.",
+                amount: withdrawalAmount,
 
-                    targetModel:
-                        "Withdrawal",
+                currency:
+                    withdrawalCurrency,
 
-                    targetId:
-                        createdWithdrawal._id,
+                withdrawalMethod,
 
-                    targetName:
-                        createdWithdrawal.withdrawalId,
+                paymentGateway:
+                    paymentGateway || "none",
 
-                    newValues: {
+                bankAccount:
+                    bankAccount || {},
 
-                        amount:
-                            createdWithdrawal.amount,
+                description:
+                    description || "",
 
-                        currency:
-                            createdWithdrawal.currency,
+                requestedBy:
+                    req.user._id,
 
-                        withdrawalMethod:
-                            createdWithdrawal.withdrawalMethod,
+                status:
+                    "pending"
 
-                        status:
-                            createdWithdrawal.status
+            });
 
-                    },
 
-                    session
+        // --------------------------------------------------
+        // Audit log
+        // --------------------------------------------------
 
-                });
+        await createAuditLog({
 
+            req,
 
-                return createdWithdrawal;
+            user: req.user,
+
+            action:
+                "CREATE_WITHDRAWAL",
+
+            module:
+                "withdrawal",
+
+            description:
+                "Withdrawal request created successfully.",
+
+            targetModel:
+                "Withdrawal",
+
+            targetId:
+                withdrawal._id,
+
+            targetName:
+                withdrawal.withdrawalId,
+
+            newValues: {
+
+                amount:
+                    withdrawal.amount,
+
+                currency:
+                    withdrawal.currency,
+
+                withdrawalMethod:
+                    withdrawal.withdrawalMethod,
+
+                status:
+                    withdrawal.status
 
             }
 
+        });
+
+
+        // --------------------------------------------------
+        // Response
+        // --------------------------------------------------
+
+        return res.status(201).json({
+
+            success: true,
+
+            message:
+                "Withdrawal request created successfully.",
+
+            withdrawal
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Create Withdrawal Error:",
+            error
         );
 
 
-    return res.status(201).json({
+        return res.status(500).json({
 
-        success: true,
+            success: false,
 
-        message:
-            "Withdrawal request created successfully.",
+            message:
+                error.message
 
-        withdrawal: result
+        });
 
-    });
-
-
-} catch (error) {
-
-    return res.status(500).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
+    }
 
 };
+
 
 // ======================================================
 // GET MY WITHDRAWALS
@@ -266,54 +337,66 @@ try {
 
 exports.getMyWithdrawals = async (req, res) => {
 
-try {
+    try {
 
-    const withdrawals =
-        await Withdrawal.find({
+        const withdrawals =
+            await Withdrawal.find({
 
-            user: req.user._id
+                user:
+                    req.user._id
 
-        })
+            })
 
-        .populate(
-            "wallet",
-            "walletId walletType"
-        )
+            .populate(
+                "wallet",
+                "walletId walletType currency"
+            )
 
-        .populate(
-            "transaction"
-        )
+            .populate(
+                "transaction"
+            )
 
-        .sort({
-            createdAt: -1
+            .sort({
+
+                createdAt:
+                    -1
+
+            });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            totalWithdrawals:
+                withdrawals.length,
+
+            withdrawals
+
         });
 
 
-    return res.status(200).json({
+    } catch (error) {
 
-        success: true,
-
-        totalWithdrawals:
-            withdrawals.length,
-
-        withdrawals
-
-    });
+        console.error(
+            "Get My Withdrawals Error:",
+            error
+        );
 
 
-} catch (error) {
+        return res.status(500).json({
 
-    return res.status(500).json({
+            success: false,
 
-        success: false,
+            message:
+                error.message
 
-        message: error.message
+        });
 
-    });
-
-}
+    }
 
 };
+
 
 // ======================================================
 // GET WITHDRAWAL BY ID
@@ -321,176 +404,216 @@ try {
 
 exports.getWithdrawalById = async (req, res) => {
 
-try {
+    try {
 
-    const withdrawal =
-        await Withdrawal.findById(
-            req.params.id
-        )
+        const withdrawal =
+            await Withdrawal.findById(
+                req.params.id
+            )
 
-        .populate(
-            "user",
-            "fullName username email"
-        )
+            .populate(
+                "user",
+                "fullName username email"
+            )
 
-        .populate(
-            "wallet",
-            "walletId walletType"
-        )
+            .populate(
+                "wallet",
+                "walletId walletType currency"
+            )
 
-        .populate(
-            "transaction"
+            .populate(
+                "transaction"
+            )
+
+            .populate(
+                "approvedBy",
+                "fullName username email"
+            )
+
+            .populate(
+                "completedBy",
+                "fullName username email"
+            )
+
+            .populate(
+                "rejectedBy",
+                "fullName username email"
+            )
+
+            .populate(
+                "cancelledBy",
+                "fullName username email"
+            );
+
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Withdrawal not found."
+
+            });
+
+        }
+
+
+        // --------------------------------------------------
+        // SECURITY: Access control
+        // --------------------------------------------------
+
+        const withdrawalOwner =
+            withdrawal.user?._id ||
+            withdrawal.user;
+
+
+        const isOwner =
+            withdrawalOwner &&
+            withdrawalOwner.toString() ===
+            req.user._id.toString();
+
+
+        const isAdmin =
+            req.user.role === "admin" ||
+            req.user.role === "superadmin";
+
+
+        if (
+            !isOwner &&
+            !isAdmin
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "You are not authorized to view this withdrawal."
+
+            });
+
+        }
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            withdrawal
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Get Withdrawal By ID Error:",
+            error
         );
 
 
-    if (!withdrawal) {
-
-        return res.status(404).json({
+        return res.status(500).json({
 
             success: false,
 
             message:
-                "Withdrawal not found."
+                error.message
 
         });
 
     }
-
-
-    // --------------------------------------------------
-    // Owner/admin access security
-    // --------------------------------------------------
-
-    const ownerId =
-        withdrawal.user._id
-            ? withdrawal.user._id.toString()
-            : withdrawal.user.toString();
-
-
-    const currentUserId =
-        req.user._id.toString();
-
-
-    const isAdmin =
-        req.user.role === "admin" ||
-        req.user.role === "superadmin";
-
-
-    if (
-        ownerId !== currentUserId &&
-        !isAdmin
-    ) {
-
-        return res.status(403).json({
-
-            success: false,
-
-            message:
-                "You are not authorized to view this withdrawal."
-
-        });
-
-    }
-
-
-    return res.status(200).json({
-
-        success: true,
-
-        withdrawal
-
-    });
-
-
-} catch (error) {
-
-    return res.status(500).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
 
 };
 
+
 // ======================================================
-// GET ALL WITHDRAWALS - ADMIN
+// GET ALL WITHDRAWALS (ADMIN)
 // ======================================================
 
 exports.getAllWithdrawals = async (req, res) => {
 
-try {
+    try {
 
-    const withdrawals =
-        await Withdrawal.find()
+        const withdrawals =
+            await Withdrawal.find()
 
-        .populate(
-            "user",
-            "fullName username email"
-        )
+            .populate(
+                "user",
+                "fullName username email"
+            )
 
-        .populate(
-            "wallet",
-            "walletId walletType"
-        )
+            .populate(
+                "wallet",
+                "walletId walletType currency"
+            )
 
-        .populate(
-            "approvedBy",
-            "fullName username email"
-        )
+            .populate(
+                "approvedBy",
+                "fullName username email"
+            )
 
-        .populate(
-            "completedBy",
-            "fullName username email"
-        )
+            .populate(
+                "completedBy",
+                "fullName username email"
+            )
 
-        .populate(
-            "rejectedBy",
-            "fullName username email"
-        )
+            .populate(
+                "rejectedBy",
+                "fullName username email"
+            )
 
-        .populate(
-            "cancelledBy",
-            "fullName username email"
-        )
+            .populate(
+                "cancelledBy",
+                "fullName username email"
+            )
 
-        .populate(
-            "transaction"
-        )
+            .populate(
+                "transaction"
+            )
 
-        .sort({
-            createdAt: -1
+            .sort({
+
+                createdAt:
+                    -1
+
+            });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            totalWithdrawals:
+                withdrawals.length,
+
+            withdrawals
+
         });
 
 
-    return res.status(200).json({
+    } catch (error) {
 
-        success: true,
-
-        totalWithdrawals:
-            withdrawals.length,
-
-        withdrawals
-
-    });
+        console.error(
+            "Get All Withdrawals Error:",
+            error
+        );
 
 
-} catch (error) {
+        return res.status(500).json({
 
-    return res.status(500).json({
+            success: false,
 
-        success: false,
+            message:
+                error.message
 
-        message: error.message
+        });
 
-    });
-
-}
+    }
 
 };
+
 
 // ======================================================
 // APPROVE WITHDRAWAL
@@ -498,163 +621,172 @@ try {
 //
 // pending → approved
 //
-// No wallet deduction occurs here.
+// NOTE:
+// No financial deduction occurs at this stage.
 // ======================================================
 
 exports.approveWithdrawal = async (req, res) => {
 
-try {
+    try {
 
-    const result =
-        await executeFinancialTransaction(
-
-            async (session) => {
-
-                const withdrawal =
-                    await Withdrawal.findById(
-                        req.params.id
-                    ).session(session);
+        const withdrawal =
+            await Withdrawal.findById(
+                req.params.id
+            );
 
 
-                if (!withdrawal) {
+        if (!withdrawal) {
 
-                    throw new Error(
-                        "Withdrawal not found."
-                    );
+            return res.status(404).json({
 
-                }
+                success: false,
 
+                message:
+                    "Withdrawal not found."
 
-                if (
-                    withdrawal.status !==
-                    "pending"
-                ) {
+            });
 
-                    throw new Error(
-                        "Only pending withdrawals can be approved."
-                    );
-
-                }
+        }
 
 
-                const oldStatus =
-                    withdrawal.status;
+        if (
+            withdrawal.status !==
+            "pending"
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only pending withdrawals can be approved."
+
+            });
+
+        }
 
 
-                withdrawal.status =
-                    "approved";
+        const oldValues = {
 
-                withdrawal.approvedBy =
-                    req.user._id;
+            status:
+                withdrawal.status,
 
-                withdrawal.approvedAt =
-                    new Date();
+            approvedBy:
+                withdrawal.approvedBy,
 
-                withdrawal.estimatedCompletion =
-                    new Date(
-                        Date.now() +
-                        (30 * 60 * 1000)
-                    );
+            approvedAt:
+                withdrawal.approvedAt
+
+        };
 
 
-                await withdrawal.save({
-
-                    session
-
-                });
+        withdrawal.status =
+            "approved";
 
 
-                await createAuditLog({
-
-                    req,
-
-                    user: req.user,
-
-                    action:
-                        "APPROVE_WITHDRAWAL",
-
-                    module:
-                        "withdrawal",
-
-                    description:
-                        "Withdrawal approved and ready for processing.",
-
-                    targetModel:
-                        "Withdrawal",
-
-                    targetId:
-                        withdrawal._id,
-
-                    targetName:
-                        withdrawal.withdrawalId,
-
-                    oldValues: {
-
-                        status:
-                            oldStatus
-
-                    },
-
-                    newValues: {
-
-                        status:
-                            withdrawal.status,
-
-                        approvedBy:
-                            withdrawal.approvedBy,
-
-                        approvedAt:
-                            withdrawal.approvedAt
-
-                    },
-
-                    changes: [
-
-                        "status",
-
-                        "approvedBy",
-
-                        "approvedAt"
-
-                    ],
-
-                    session
-
-                });
+        withdrawal.approvedBy =
+            req.user._id;
 
 
-                return withdrawal;
+        withdrawal.approvedAt =
+            new Date();
 
-            }
 
+        withdrawal.estimatedCompletion =
+            new Date(
+                Date.now() +
+                (30 * 60 * 1000)
+            );
+
+
+        await withdrawal.save();
+
+
+        await createAuditLog({
+
+            req,
+
+            user:
+                req.user,
+
+            action:
+                "APPROVE_WITHDRAWAL",
+
+            module:
+                "withdrawal",
+
+            description:
+                "Withdrawal approved and queued for processing.",
+
+            targetModel:
+                "Withdrawal",
+
+            targetId:
+                withdrawal._id,
+
+            targetName:
+                withdrawal.withdrawalId,
+
+            oldValues,
+
+            newValues: {
+
+                status:
+                    withdrawal.status,
+
+                approvedBy:
+                    withdrawal.approvedBy,
+
+                approvedAt:
+                    withdrawal.approvedAt
+
+            },
+
+            changes: [
+
+                "status",
+                "approvedBy",
+                "approvedAt",
+                "estimatedCompletion"
+
+            ]
+
+        });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal approved successfully.",
+
+            withdrawal
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Approve Withdrawal Error:",
+            error
         );
 
 
-    return res.status(200).json({
+        return res.status(500).json({
 
-        success: true,
+            success: false,
 
-        message:
-            "Withdrawal approved successfully.",
+            message:
+                error.message
 
-        withdrawal: result
+        });
 
-    });
-
-
-} catch (error) {
-
-    return res.status(400).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
+    }
 
 };
+
 
 // ======================================================
 // PROCESS WITHDRAWAL
@@ -662,154 +794,154 @@ try {
 //
 // approved → processing
 //
+// NOTE:
 // No wallet deduction occurs here.
 // ======================================================
 
 exports.processWithdrawal = async (req, res) => {
 
-try {
+    try {
 
-    const result =
-        await executeFinancialTransaction(
-
-            async (session) => {
-
-                const withdrawal =
-                    await Withdrawal.findById(
-                        req.params.id
-                    ).session(session);
+        const withdrawal =
+            await Withdrawal.findById(
+                req.params.id
+            );
 
 
-                if (!withdrawal) {
+        if (!withdrawal) {
 
-                    throw new Error(
-                        "Withdrawal not found."
-                    );
+            return res.status(404).json({
 
-                }
+                success: false,
 
+                message:
+                    "Withdrawal not found."
 
-                if (
-                    withdrawal.status !==
-                    "approved"
-                ) {
+            });
 
-                    throw new Error(
-                        "Only approved withdrawals can be processed."
-                    );
-
-                }
+        }
 
 
-                const oldStatus =
-                    withdrawal.status;
+        if (
+            withdrawal.status !==
+            "approved"
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only approved withdrawals can be processed."
+
+            });
+
+        }
 
 
-                withdrawal.status =
-                    "processing";
+        const oldStatus =
+            withdrawal.status;
 
 
-                if (
-                    !withdrawal.estimatedCompletion
-                ) {
-
-                    withdrawal.estimatedCompletion =
-                        new Date(
-                            Date.now() +
-                            (30 * 60 * 1000)
-                        );
-
-                }
+        withdrawal.status =
+            "processing";
 
 
-                await withdrawal.save({
-
-                    session
-
-                });
-
-
-                await createAuditLog({
-
-                    req,
-
-                    user: req.user,
-
-                    action:
-                        "PROCESS_WITHDRAWAL",
-
-                    module:
-                        "withdrawal",
-
-                    description:
-                        "Withdrawal moved to processing.",
-
-                    targetModel:
-                        "Withdrawal",
-
-                    targetId:
-                        withdrawal._id,
-
-                    targetName:
-                        withdrawal.withdrawalId,
-
-                    oldValues: {
-
-                        status:
-                            oldStatus
-
-                    },
-
-                    newValues: {
-
-                        status:
-                            withdrawal.status
-
-                    },
-
-                    changes: [
-
-                        "status"
-
-                    ],
-
-                    session
-
-                });
+        withdrawal.estimatedCompletion =
+            new Date(
+                Date.now() +
+                (30 * 60 * 1000)
+            );
 
 
-                return withdrawal;
+        await withdrawal.save();
 
-            }
 
+        await createAuditLog({
+
+            req,
+
+            user:
+                req.user,
+
+            action:
+                "PROCESS_WITHDRAWAL",
+
+            module:
+                "withdrawal",
+
+            description:
+                "Withdrawal moved to processing state.",
+
+            targetModel:
+                "Withdrawal",
+
+            targetId:
+                withdrawal._id,
+
+            targetName:
+                withdrawal.withdrawalId,
+
+            oldValues: {
+
+                status:
+                    oldStatus
+
+            },
+
+            newValues: {
+
+                status:
+                    withdrawal.status,
+
+                estimatedCompletion:
+                    withdrawal.estimatedCompletion
+
+            },
+
+            changes: [
+
+                "status",
+                "estimatedCompletion"
+
+            ]
+
+        });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal is now processing.",
+
+            withdrawal
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Process Withdrawal Error:",
+            error
         );
 
 
-    return res.status(200).json({
+        return res.status(500).json({
 
-        success: true,
+            success: false,
 
-        message:
-            "Withdrawal moved to processing.",
+            message:
+                error.message
 
-        withdrawal: result
+        });
 
-    });
-
-
-} catch (error) {
-
-    return res.status(400).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
+    }
 
 };
+
 
 // ======================================================
 // COMPLETE WITHDRAWAL
@@ -817,433 +949,402 @@ try {
 //
 // processing → completed
 //
-// Financial transaction:
-//
-// Wallet deduction
-//      +
-// Transaction record
-//      +
-// Withdrawal update
-//      +
-// Audit log
-//
-// ALL INSIDE ONE MONGODB TRANSACTION.
+// FINANCIAL FLOW:
+// Executed within a secure transaction:
+// - Wallet validation
+// - Balance deduction
+// - Transaction creation
+// - Withdrawal finalization
+// - Audit logging
 // ======================================================
 
 exports.completeWithdrawal = async (req, res) => {
 
-try {
+    try {
 
-    const result =
-        await executeFinancialTransaction(
+        const withdrawal =
+            await Withdrawal.findById(
+                req.params.id
+            );
 
-            async (session) => {
 
+        if (!withdrawal) {
 
-                // ==================================
-                // Get current withdrawal
-                // ==================================
+            return res.status(404).json({
 
-                const withdrawal =
-                    await Withdrawal.findById(
-                        req.params.id
-                    ).session(session);
+                success: false,
 
+                message:
+                    "Withdrawal not found."
 
-                if (!withdrawal) {
+            });
 
-                    throw new Error(
-                        "Withdrawal not found."
-                    );
+        }
 
-                }
 
+        if (
+            withdrawal.status !==
+            "processing"
+        ) {
 
-                if (
-                    withdrawal.status !==
-                    "processing"
-                ) {
+            return res.status(400).json({
 
-                    throw new Error(
-                        "Only processing withdrawals can be completed."
-                    );
+                success: false,
 
-                }
+                message:
+                    "Only processing withdrawals can be completed."
 
+            });
 
-                // ==================================
-                // Get wallet
-                // ==================================
+        }
 
-                const wallet =
-                    await Wallet.findById(
-                        withdrawal.wallet
-                    ).session(session);
 
+        const result =
+            await executeFinancialTransaction(
 
-                if (!wallet) {
+                async (session) => {
 
-                    throw new Error(
-                        "Wallet not found."
-                    );
 
-                }
+                    const currentWithdrawal =
+                        await Withdrawal.findById(
+                            withdrawal._id
+                        )
+                        .session(session);
 
 
-                // ==================================
-                // Wallet ownership verification
-                // ==================================
+                    if (!currentWithdrawal) {
 
-                if (
-                    wallet.user.toString() !==
-                    withdrawal.user.toString()
-                ) {
+                        throw new Error(
+                            "Withdrawal not found."
+                        );
 
-                    throw new Error(
-                        "Wallet ownership validation failed."
-                    );
+                    }
 
-                }
 
+                    if (
+                        currentWithdrawal.status !==
+                        "processing"
+                    ) {
 
-                // ==================================
-                // Check balance
-                // ==================================
+                        throw new Error(
+                            "Withdrawal is no longer in processing state."
+                        );
 
-                if (
-                    Number(
-                        wallet.availableBalance
-                    ) <
-                    Number(
-                        withdrawal.amount
-                    )
-                ) {
+                    }
 
-                    throw new Error(
-                        "Insufficient wallet balance."
-                    );
 
-                }
+                    const wallet =
+                        await Wallet.findById(
+                            currentWithdrawal.wallet
+                        )
+                        .session(session);
 
 
-                // ==================================
-                // Capture balance
-                // ==================================
+                    if (!wallet) {
 
-                const balanceBefore =
-                    Number(
-                        wallet.availableBalance
-                    );
+                        throw new Error(
+                            "Wallet not found."
+                        );
 
+                    }
 
-                // ==================================
-                // Processing fee
-                // ==================================
 
-                const processingFee =
-                    Number(
-                        withdrawal.processingFee ||
-                        0
-                    );
+                    if (
+                        wallet.user.toString() !==
+                        currentWithdrawal.user.toString()
+                    ) {
 
+                        throw new Error(
+                            "Wallet ownership mismatch."
+                        );
 
-                if (
-                    processingFee >
-                    withdrawal.amount
-                ) {
+                    }
 
-                    throw new Error(
-                        "Processing fee cannot exceed withdrawal amount."
-                    );
 
-                }
+                    if (
+                        Number(wallet.availableBalance || 0) <
+                        Number(currentWithdrawal.amount)
+                    ) {
 
+                        throw new Error(
+                            "Insufficient wallet balance."
+                        );
 
-                const netAmount =
-                    withdrawal.amount -
-                    processingFee;
+                    }
 
 
-                // ==================================
-                // Deduct wallet
-                // ==================================
+                    const balanceBefore =
+                        Number(wallet.availableBalance);
 
-                wallet.availableBalance =
-                    balanceBefore -
-                    withdrawal.amount;
 
+                    const processingFee =
+                        Number(currentWithdrawal.processingFee || 0);
 
-                wallet.totalWithdrawn =
-                    Number(
-                        wallet.totalWithdrawn || 0
-                    ) +
-                    Number(
-                        withdrawal.amount
-                    );
 
+                    if (
+                        !Number.isFinite(processingFee) ||
+                        processingFee < 0
+                    ) {
 
-                wallet.lastWithdrawalDate =
-                    new Date();
+                        throw new Error(
+                            "Invalid processing fee."
+                        );
 
+                    }
 
-                wallet.lastTransactionDate =
-                    new Date();
 
+                    const netAmount =
+                        Math.max(
+                            Number(currentWithdrawal.amount) -
+                            processingFee,
+                            0
+                        );
 
-                await wallet.save({
 
-                    session
+                    wallet.availableBalance =
+                        balanceBefore -
+                        Number(currentWithdrawal.amount);
 
-                });
 
+                    wallet.totalWithdrawn =
+                        Number(wallet.totalWithdrawn || 0) +
+                        Number(currentWithdrawal.amount);
 
-                // ==================================
-                // Create transaction
-                // ==================================
 
-                const transaction =
-                    await Transaction.create(
+                    wallet.lastWithdrawalDate =
+                        new Date();
 
-                        [{
+                    wallet.lastTransactionDate =
+                        new Date();
 
-                            user:
-                                withdrawal.user,
 
-                            wallet:
-                                wallet._id,
+                    await wallet.save({ session });
 
-                            transactionType:
-                                "withdrawal",
 
-                            transactionDirection:
-                                "debit",
+                    const transactionRecords =
+                        await Transaction.create(
 
-                            amount:
-                                withdrawal.amount,
+                            [{
 
-                            currency:
-                                withdrawal.currency,
+                                user:
+                                    currentWithdrawal.user,
 
-                            paymentMethod:
-                                withdrawal.withdrawalMethod,
+                                wallet:
+                                    wallet._id,
 
-                            paymentGateway:
-                                withdrawal.paymentGateway,
+                                amount:
+                                    currentWithdrawal.amount,
+
+                                currency:
+                                    currentWithdrawal.currency,
+
+                                transactionType:
+                                    "withdrawal",
+
+                                transactionDirection:
+                                    "debit",
+
+                                paymentMethod:
+                                    currentWithdrawal.withdrawalMethod,
+
+                                paymentGateway:
+                                    currentWithdrawal.paymentGateway,
+
+                                description:
+                                    "Withdrawal completed successfully.",
+
+                                balanceBefore,
+
+                                balanceAfter:
+                                    wallet.availableBalance,
+
+                                status:
+                                    "successful",
+
+                                performedBy:
+                                    req.user._id
+
+                            }],
+
+                            { session }
+
+                        );
+
+
+                    const transaction =
+                        transactionRecords[0];
+
+
+                    const completedAt =
+                        new Date();
+
+
+                    currentWithdrawal.status =
+                        "completed";
+
+                    currentWithdrawal.completedBy =
+                        req.user._id;
+
+                    currentWithdrawal.completedAt =
+                        completedAt;
+
+                    currentWithdrawal.processingFee =
+                        processingFee;
+
+                    currentWithdrawal.netAmount =
+                        netAmount;
+
+                    currentWithdrawal.transaction =
+                        transaction._id;
+
+
+                    const processingStart =
+                        currentWithdrawal.updatedAt ||
+                        currentWithdrawal.createdAt;
+
+
+                    if (processingStart) {
+
+                        currentWithdrawal.processingDuration =
+                            Math.max(
+                                completedAt - processingStart,
+                                0
+                            );
+
+                    }
+
+
+                    await currentWithdrawal.save({ session });
+
+
+                    await createAuditLog({
+
+                        req,
+
+                        user:
+                            req.user,
+
+                        action:
+                            "COMPLETE_WITHDRAWAL",
+
+                        module:
+                            "withdrawal",
+
+                        description:
+                            "Withdrawal completed and wallet updated.",
+
+                        targetModel:
+                            "Withdrawal",
+
+                        targetId:
+                            currentWithdrawal._id,
+
+                        targetName:
+                            currentWithdrawal.withdrawalId,
+
+                        oldValues: {
 
                             status:
-                                "successful",
+                                "processing",
+
+                            walletBalance:
+                                balanceBefore
+
+                        },
+
+                        newValues: {
+
+                            status:
+                                currentWithdrawal.status,
+
+                            walletBalance:
+                                wallet.availableBalance,
+
+                            processingFee,
+
+                            netAmount
+
+                        },
+
+                        changes: [
+
+                            "status",
+                            "completedBy",
+                            "completedAt",
+                            "processingFee",
+                            "netAmount",
+                            "transaction"
+
+                        ],
+
+                        metadata: {
+
+                            amount:
+                                currentWithdrawal.amount,
 
                             balanceBefore,
 
                             balanceAfter:
                                 wallet.availableBalance,
 
-                            description:
-                                "Wallet withdrawal completed.",
+                            transactionId:
+                                transaction._id
 
-                            performedBy:
-                                req.user._id
+                        },
 
-                        }],
+                        session
 
-                        {
-
-                            session
-
-                        }
-
-                    );
+                    });
 
 
-                // ==================================
-                // Update withdrawal
-                // ==================================
+                    return {
 
-                const completionTime =
-                    new Date();
+                        withdrawal:
+                            currentWithdrawal,
 
+                        transaction
 
-                withdrawal.status =
-                    "completed";
-
-
-                withdrawal.completedBy =
-                    req.user._id;
-
-
-                withdrawal.completedAt =
-                    completionTime;
-
-
-                withdrawal.processingFee =
-                    processingFee;
-
-
-                withdrawal.netAmount =
-                    netAmount;
-
-
-                withdrawal.transaction =
-                    transaction[0]._id;
-
-
-                // ----------------------------------
-                // Calculate actual processing time
-                // ----------------------------------
-
-                if (
-                    withdrawal.updatedAt
-                ) {
-
-                    withdrawal.processingDuration =
-                        Math.max(
-
-                            completionTime.getTime() -
-                            withdrawal.updatedAt.getTime(),
-
-                            0
-
-                        );
+                    };
 
                 }
 
-
-                await withdrawal.save({
-
-                    session
-
-                });
+            );
 
 
-                // ==================================
-                // Audit log
-                // ==================================
+        return res.status(200).json({
 
-                await createAuditLog({
+            success: true,
 
-                    req,
+            message:
+                "Withdrawal completed successfully.",
 
-                    user: req.user,
+            data:
+                result
 
-                    action:
-                        "COMPLETE_WITHDRAWAL",
-
-                    module:
-                        "withdrawal",
-
-                    description:
-                        "Withdrawal completed and wallet balance deducted.",
-
-                    targetModel:
-                        "Withdrawal",
-
-                    targetId:
-                        withdrawal._id,
-
-                    targetName:
-                        withdrawal.withdrawalId,
-
-                    oldValues: {
-
-                        status:
-                            "processing",
-
-                        walletBalance:
-                            balanceBefore
-
-                    },
-
-                    newValues: {
-
-                        status:
-                            "completed",
-
-                        walletBalance:
-                            wallet.availableBalance,
-
-                        processingFee,
-
-                        netAmount,
-
-                        transaction:
-                            transaction[0]._id
-
-                    },
-
-                    changes: [
-
-                        "status",
-
-                        "walletBalance",
-
-                        "transaction",
-
-                        "completedBy",
-
-                        "completedAt"
-
-                    ],
-
-                    metadata: {
-
-                        amount:
-                            withdrawal.amount,
-
-                        processingFee,
-
-                        netAmount,
-
-                        balanceBefore,
-
-                        balanceAfter:
-                            wallet.availableBalance
-
-                    },
-
-                    session
-
-                });
+        });
 
 
-                return {
+    } catch (error) {
 
-                    withdrawal,
-
-                    transaction:
-                        transaction[0]
-
-                };
-
-            }
-
+        console.error(
+            "Complete Withdrawal Error:",
+            error
         );
 
 
-    return res.status(200).json({
+        return res.status(500).json({
 
-        success: true,
+            success: false,
 
-        message:
-            "Withdrawal completed successfully.",
+            message:
+                error.message
 
-        data: result
+        });
 
-    });
-
-
-} catch (error) {
-
-    return res.status(400).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
+    }
 
 };
+
 
 // ======================================================
 // REJECT WITHDRAWAL
@@ -1254,674 +1355,92 @@ try {
 
 exports.rejectWithdrawal = async (req, res) => {
 
-try {
+    try {
 
-    const result =
-        await executeFinancialTransaction(
+        const withdrawal =
+            await Withdrawal.findById(
+                req.params.id
+            );
 
-            async (session) => {
 
-                const withdrawal =
-                    await Withdrawal.findById(
-                        req.params.id
-                    ).session(session);
+        if (!withdrawal) {
 
+            return res.status(404).json({
 
-                if (!withdrawal) {
+                success: false,
 
-                    throw new Error(
-                        "Withdrawal not found."
-                    );
+                message:
+                    "Withdrawal not found."
 
-                }
-
-
-                if (
-                    withdrawal.status !==
-                    "pending"
-                ) {
-
-                    throw new Error(
-                        "Only pending withdrawals can be rejected."
-                    );
-
-                }
-
-
-                const reason =
-                    req.body.rejectionReason ||
-                    "Withdrawal rejected by administrator.";
-
-
-                withdrawal.status =
-                    "rejected";
-
-                withdrawal.rejectedBy =
-                    req.user._id;
-
-                withdrawal.rejectedAt =
-                    new Date();
-
-                withdrawal.rejectionReason =
-                    reason;
-
-
-                await withdrawal.save({
-
-                    session
-
-                });
-
-
-                await createAuditLog({
-
-                    req,
-
-                    user: req.user,
-
-                    action:
-                        "REJECT_WITHDRAWAL",
-
-                    module:
-                        "withdrawal",
-
-                    description:
-                        "Withdrawal request rejected.",
-
-                    targetModel:
-                        "Withdrawal",
-
-                    targetId:
-                        withdrawal._id,
-
-                    targetName:
-                        withdrawal.withdrawalId,
-
-                    metadata: {
-
-                        rejectionReason:
-                            reason
-
-                    },
-
-                    session
-
-                });
-
-
-                return withdrawal;
-
-            }
-
-        );
-
-
-    return res.status(200).json({
-
-        success: true,
-
-        message:
-            "Withdrawal rejected successfully.",
-
-        withdrawal: result
-
-    });
-
-
-} catch (error) {
-
-    return res.status(400).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
-
-};
-
-// ======================================================
-// CANCEL WITHDRAWAL
-// ======================================================
-//
-// Only the withdrawal owner can cancel.
-// pending → cancelled
-// ======================================================
-
-exports.cancelWithdrawal = async (req, res) => {
-
-try {
-
-    const result =
-        await executeFinancialTransaction(
-
-            async (session) => {
-
-                const withdrawal =
-                    await Withdrawal.findById(
-                        req.params.id
-                    ).session(session);
-
-
-                if (!withdrawal) {
-
-                    throw new Error(
-                        "Withdrawal not found."
-                    );
-
-                }
-
-
-                // ----------------------------------
-                // Ownership security
-                // ----------------------------------
-
-                if (
-                    withdrawal.user.toString() !==
-                    req.user._id.toString()
-                ) {
-
-                    throw new Error(
-                        "You are not authorized to cancel this withdrawal."
-                    );
-
-                }
-
-
-                if (
-                    withdrawal.status !==
-                    "pending"
-                ) {
-
-                    throw new Error(
-                        "Only pending withdrawals can be cancelled."
-                    );
-
-                }
-
-
-                withdrawal.status =
-                    "cancelled";
-
-                withdrawal.cancelledBy =
-                    req.user._id;
-
-                withdrawal.cancelledAt =
-                    new Date();
-
-                withdrawal.cancellationReason =
-                    req.body.cancellationReason ||
-                    "Withdrawal cancelled by user.";
-
-
-                await withdrawal.save({
-
-                    session
-
-                });
-
-
-                await createAuditLog({
-
-                    req,
-
-                    user: req.user,
-
-                    action:
-                        "CANCEL_WITHDRAWAL",
-
-                    module:
-                        "withdrawal",
-
-                    description:
-                        "Withdrawal request cancelled by owner.",
-
-                    targetModel:
-                        "Withdrawal",
-
-                    targetId:
-                        withdrawal._id,
-
-                    targetName:
-                        withdrawal.withdrawalId,
-
-                    metadata: {
-
-                        cancellationReason:
-                            withdrawal.cancellationReason
-
-                    },
-
-                    session
-
-                });
-
-
-                return withdrawal;
-
-            }
-
-        );
-
-
-    return res.status(200).json({
-
-        success: true,
-
-        message:
-            "Withdrawal cancelled successfully.",
-
-        withdrawal: result
-
-    });
-
-
-} catch (error) {
-
-    return res.status(400).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
-
-};
-
-// ======================================================
-// FAIL WITHDRAWAL
-// ======================================================
-//
-// processing → failed
-// ======================================================
-
-exports.failWithdrawal = async (req, res) => {
-
-try {
-
-    const result =
-        await executeFinancialTransaction(
-
-            async (session) => {
-
-                const withdrawal =
-                    await Withdrawal.findById(
-                        req.params.id
-                    ).session(session);
-
-
-                if (!withdrawal) {
-
-                    throw new Error(
-                        "Withdrawal not found."
-                    );
-
-                }
-
-
-                if (
-                    withdrawal.status !==
-                    "processing"
-                ) {
-
-                    throw new Error(
-                        "Only processing withdrawals can be marked as failed."
-                    );
-
-                }
-
-
-                const reason =
-                    req.body.failureReason ||
-                    "Withdrawal processing failed.";
-
-
-                withdrawal.status =
-                    "failed";
-
-                withdrawal.failureReason =
-                    reason;
-
-
-                await withdrawal.save({
-
-                    session
-
-                });
-
-
-                await createAuditLog({
-
-                    req,
-
-                    user: req.user,
-
-                    action:
-                        "FAIL_WITHDRAWAL",
-
-                    module:
-                        "withdrawal",
-
-                    description:
-                        "Withdrawal processing failed.",
-
-                    targetModel:
-                        "Withdrawal",
-
-                    targetId:
-                        withdrawal._id,
-
-                    targetName:
-                        withdrawal.withdrawalId,
-
-                    metadata: {
-
-                        failureReason:
-                            reason
-
-                    },
-
-                    session
-
-                });
-
-
-                return withdrawal;
-
-            }
-
-        );
-
-
-    return res.status(200).json({
-
-        success: true,
-
-        message:
-            "Withdrawal marked as failed.",
-
-        withdrawal: result
-
-    });
-
-
-} catch (error) {
-
-    return res.status(400).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
-
-};
-
-// ======================================================
-// RETRY FAILED WITHDRAWAL
-// ======================================================
-//
-// failed → processing
-// ======================================================
-
-exports.retryFailedWithdrawal = async (req, res) => {
-
-try {
-
-    const result =
-        await executeFinancialTransaction(
-
-            async (session) => {
-
-                const withdrawal =
-                    await Withdrawal.findById(
-                        req.params.id
-                    ).session(session);
-
-
-                if (!withdrawal) {
-
-                    throw new Error(
-                        "Withdrawal not found."
-                    );
-
-                }
-
-
-                if (
-                    withdrawal.status !==
-                    "failed"
-                ) {
-
-                    throw new Error(
-                        "Only failed withdrawals can be retried."
-                    );
-
-                }
-
-
-                const maxRetries = 3;
-
-
-                if (
-                    Number(
-                        withdrawal.retryCount || 0
-                    ) >= maxRetries
-                ) {
-
-                    throw new Error(
-                        "Maximum withdrawal retry limit reached."
-                    );
-
-                }
-
-
-                withdrawal.retryCount =
-                    Number(
-                        withdrawal.retryCount || 0
-                    ) + 1;
-
-
-                withdrawal.status =
-                    "processing";
-
-
-                withdrawal.failureReason =
-                    "";
-
-
-                withdrawal.estimatedCompletion =
-                    new Date(
-                        Date.now() +
-                        (30 * 60 * 1000)
-                    );
-
-
-                await withdrawal.save({
-
-                    session
-
-                });
-
-
-                await createAuditLog({
-
-                    req,
-
-                    user: req.user,
-
-                    action:
-                        "RETRY_WITHDRAWAL",
-
-                    module:
-                        "withdrawal",
-
-                    description:
-                        "Failed withdrawal was retried and returned to processing.",
-
-                    targetModel:
-                        "Withdrawal",
-
-                    targetId:
-                        withdrawal._id,
-
-                    targetName:
-                        withdrawal.withdrawalId,
-
-                    metadata: {
-
-                        retryCount:
-                            withdrawal.retryCount,
-
-                        maxRetries
-
-                    },
-
-                    session
-
-                });
-
-
-                return withdrawal;
-
-            }
-
-        );
-
-
-    return res.status(200).json({
-
-        success: true,
-
-        message:
-            "Withdrawal retry started successfully.",
-
-        withdrawal: result
-
-    });
-
-
-} catch (error) {
-
-    return res.status(400).json({
-
-        success: false,
-
-        message: error.message
-
-    });
-
-}
-
-};
-
-// ======================================================
-// WITHDRAWAL SUMMARY
-// ======================================================
-
-exports.getWithdrawalSummary = async (req, res) => {
-
-try {
-
-    const withdrawals =
-        await Withdrawal.find({
-
-            user: req.user._id
-
-        });
-
-
-    let totalAmount = 0;
-
-    let completedAmount = 0;
-
-    let pendingAmount = 0;
-
-
-    withdrawals.forEach(
-
-        (withdrawal) => {
-
-            totalAmount +=
-                Number(
-                    withdrawal.amount || 0
-                );
-
-
-            if (
-                withdrawal.status ===
-                "completed"
-            ) {
-
-                completedAmount +=
-                    Number(
-                        withdrawal.amount || 0
-                    );
-
-            }
-
-
-            if (
-
-                withdrawal.status ===
-                    "pending" ||
-
-                withdrawal.status ===
-                    "approved" ||
-
-                withdrawal.status ===
-                    "processing"
-
-            ) {
-
-                pendingAmount +=
-                    Number(
-                        withdrawal.amount || 0
-                    );
-
-            }
+            });
 
         }
 
-    );
 
+        if (
+            withdrawal.status !==
+            "pending"
+        ) {
 
-    return res.status(200).json({
+            return res.status(400).json({
 
-        success: true,
+                success: false,
 
-        summary: {
+                message:
+                    "Only pending withdrawals can be rejected."
 
-            totalWithdrawals:
-                withdrawals.length,
-
-            totalAmount,
-
-            completedAmount,
-
-            pendingAmount
+            });
 
         }
 
-    });
+
+        const reason =
+            String(
+                req.body.rejectionReason ||
+                "Rejected by administrator."
+            ).trim();
 
 
-} catch (error) {
+        const oldStatus =
+            withdrawal.status;
 
-    return res.status(500).json({
 
-        success: false,
+        withdrawal.status =
+            "rejected";
 
-        message: error.message
+        withdrawal.rejectedBy =
+            req.user._id;
 
-    });
+        withdrawal.rejectedAt =
+            new Date();
 
-}
+        withdrawal.rejectionReason =
+            reason;
 
-};
+
+        await withdrawal.save();
+
+
+        await createAuditLog({
+
+            req,
+
+            user:
+                req.user,
+
+            action:
+                "REJECT_WITHDRAWAL",
+
+            module:
+                "withdrawal",
+
+            description:
+                "Withdrawal rejected.",
+
+            targetModel:
+                "Withdrawal",
+
+            targetId:
+                withdrawal._id,
+
+            targetName:
