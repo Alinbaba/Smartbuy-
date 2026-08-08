@@ -4,24 +4,21 @@ const mongoose = require("mongoose");
 // SmartBuy Enterprise Withdrawal Model
 // ======================================================
 //
-// Handles:
-// - Withdrawal requests
-// - Approval
-// - Processing
-// - Completion
-// - Rejection
-// - Cancellation
-// - Failure
-// - Retry
-// - Transaction linking
-// - Payout information
-// - Security/audit information
+// This model manages the full lifecycle of withdrawal operations, including:
+// - Withdrawal request creation
+// - Approval workflow
+// - Processing and completion
+// - Rejection and cancellation handling
+// - Failure tracking and retry attempts
+// - Transaction linkage
+// - Payout and banking details
+// - Security and audit metadata
 //
 // IMPORTANT:
-// Financial balance changes are NOT performed here.
-// They are handled by the financial transaction engine.
+// This model does NOT handle balance updates.
+// All financial balance adjustments are managed exclusively
+// by the financial transaction engine.
 // ======================================================
-
 
 const withdrawalSchema = new mongoose.Schema(
 
@@ -62,7 +59,7 @@ const withdrawalSchema = new mongoose.Schema(
 
 
         // ==================================================
-        // Wallet
+        // Wallet Reference
         // ==================================================
 
         wallet: {
@@ -312,7 +309,7 @@ const withdrawalSchema = new mongoose.Schema(
 
 
         // ==================================================
-        // Estimated Completion
+        // Estimated Completion Time
         // ==================================================
 
         estimatedCompletion: {
@@ -325,7 +322,29 @@ const withdrawalSchema = new mongoose.Schema(
 
 
         // ==================================================
+        // Processing Start Timestamp
+        // ==================================================
+        //
+        // Captures the exact time the withdrawal enters
+        // the processing stage.
+        //
+        // Used for calculating processing duration.
+        // ==================================================
+
+        processingStartedAt: {
+
+            type: Date,
+
+            default: null
+
+        },
+
+
+        // ==================================================
         // Processing Duration
+        // ==================================================
+        //
+        // Stored in milliseconds.
         // ==================================================
 
         processingDuration: {
@@ -506,7 +525,7 @@ const withdrawalSchema = new mongoose.Schema(
 
 
         // ==================================================
-        // Audit / Security Information
+        // Audit & Security Information
         // ==================================================
 
         ipAddress: {
@@ -606,18 +625,12 @@ withdrawalSchema.index({
 // Generate Withdrawal ID
 // ======================================================
 //
-// IMPORTANT:
-// We deliberately do NOT use countDocuments() here.
+// This implementation avoids countDocuments() to prevent
+// race conditions that could lead to duplicate IDs under
+// high concurrency.
 //
-// countDocuments() is unsafe for generating sequential
-// financial identifiers because two simultaneous requests
-// can receive the same count.
-//
-// A proper enterprise implementation should use a dedicated
-// atomic counter or another collision-safe identifier
-// strategy.
-//
-// For now, we generate a unique time/random-based ID.
+// Instead, a time-based and random component is used to
+// ensure uniqueness.
 // ======================================================
 
 withdrawalSchema.pre("save", async function (next) {
