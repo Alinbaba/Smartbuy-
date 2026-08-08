@@ -1,305 +1,783 @@
 const mongoose = require("mongoose");
 
-const walletSchema = new mongoose.Schema({
+// ======================================================
+// SmartBuy Enterprise Wallet Model
+// ======================================================
+//
+// Purpose:
+// This model represents the central financial wallet
+// for SmartBuy users.
+//
+// It manages:
+// - Available balance
+// - Pending balance
+// - Frozen balance
+// - Earnings
+// - Spending
+// - Withdrawals
+// - Rewards
+// - Cashback
+// - Wallet security
+// - KYC status
+// - Transaction limits
+// - Bank/payout information
+// - Multi-currency balances
+//
+// IMPORTANT:
+// This model is strictly responsible for storing wallet state.
+//
+// All financial balance updates must be executed exclusively
+// through the SmartBuy financial transaction engine using
+// a MongoDB transaction session.
+//
+// This model does NOT perform or authorize financial operations.
+// ======================================================
 
-    // ==========================
-    // Wallet Owner
-    // ==========================
 
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-        unique: true
-    },
+// ======================================================
+// WALLET SCHEMA
+// ======================================================
 
-    // ==========================
-    // SmartBuy Wallet ID
-    // ==========================
+const walletSchema = new mongoose.Schema(
 
-    walletId: {
-        type: String,
-        unique: true
-    },
-
-    // ==========================
-    // Wallet Type
-    // ==========================
-
-    walletType: {
-        type: String,
-        enum: [
-            "customer",
-            "seller",
-            "affiliate",
-            "manufacturer",
-            "wholesaler",
-            "admin"
-        ],
-        required: true
-    },
-
-    // ==========================
-    // Currency
-    // ==========================
-
-    currency: {
-        type: String,
-        default: "NGN"
-    },
-        // ==========================
-    // Wallet Balances
-    // ==========================
-
-    availableBalance: {
-        type: Number,
-        default: 0
-    },
-
-    pendingBalance: {
-        type: Number,
-        default: 0
-    },
-
-    frozenBalance: {
-        type: Number,
-        default: 0
-    },
-
-    totalEarned: {
-        type: Number,
-        default: 0
-    },
-
-    totalSpent: {
-        type: Number,
-        default: 0
-    },
-
-    totalWithdrawn: {
-        type: Number,
-        default: 0
-    },
-        // ==========================
-    // Rewards & Cashback
-    // ==========================
-
-    rewardPoints: {
-        type: Number,
-        default: 0
-    },
-
-    cashbackBalance: {
-        type: Number,
-        default: 0
-    },
-
-    loyaltyLevel: {
-        type: String,
-        enum: [
-            "Bronze",
-            "Silver",
-            "Gold",
-            "Platinum",
-            "Diamond"
-        ],
-        default: "Bronze"
-    },
-        // ==========================
-    // Wallet Security & Status
-    // ==========================
-
-    isActive: {
-        type: Boolean,
-        default: true
-    },
-
-    isLocked: {
-        type: Boolean,
-        default: false
-    },
-
-    lockReason: {
-        type: String,
-        default: ""
-    },
-
-    lastTransactionDate: {
-        type: Date
-    },
-
-    lastWithdrawalDate: {
-        type: Date
-    },
-        // ==========================
-    // Enterprise Wallet Features
-    // ==========================
-
-    bankAccount: {
-
-        accountName: {
-            type: String,
-            default: ""
-        },
-
-        accountNumber: {
-            type: String,
-            default: ""
-        },
-
-        bankName: {
-            type: String,
-            default: ""
-        }
-
-    },
-
-    paymentMethods: [
-
-        {
-            type: String
-        }
-
-    ],
-
-    notes: {
-        type: String,
-        default: ""
-    },
-    // ==========================
-// Transaction Limits
-// ==========================
-
-dailyTransactionLimit: {
-    type: Number,
-    default: 500000
-},
-
-monthlyTransactionLimit: {
-    type: Number,
-    default: 10000000
-},
-
-maximumWalletBalance: {
-    type: Number,
-    default: 50000000
-},
-
-// ==========================
-// KYC Information
-// ==========================
-
-kycStatus: {
-    type: String,
-    enum: [
-        "not-submitted",
-        "pending",
-        "verified",
-        "rejected"
-    ],
-    default: "not-submitted"
-},
-
-kycVerifiedAt: {
-    type: Date
-},
-
-// ==========================
-// Wallet PIN
-// ==========================
-
-walletPin: {
-    type: String,
-    default: ""
-},
-
-// ==========================
-// Last Login / Device
-// ==========================
-
-lastLogin: {
-    type: Date
-},
-
-lastDevice: {
-    type: String,
-    default: ""
-},
-
-lastIPAddress: {
-    type: String,
-    default: ""
-},
-
-// ==========================
-// Preferred Withdrawal Method
-// ==========================
-
-preferredWithdrawalMethod: {
-    type: String,
-    enum: [
-        "bank",
-        "wallet",
-        "paypal",
-        "payoneer",
-        "crypto"
-    ],
-    default: "bank"
-},
-
-// ==========================
-// Multi-Currency Balances
-// ==========================
-
-balances: [
     {
-        currency: {
+
+        // ==================================================
+        // Wallet Owner
+        // ==================================================
+
+        user: {
+
+            type: mongoose.Schema.Types.ObjectId,
+
+            ref: "User",
+
+            required: true,
+
+            unique: true,
+
+            index: true
+
+        },
+
+
+        // ==================================================
+        // SmartBuy Wallet ID
+        // ==================================================
+
+        walletId: {
+
             type: String,
-            default: "NGN"
+
+            unique: true,
+
+            index: true,
+
+            trim: true
+
         },
 
-        available: {
-            type: Number,
-            default: 0
+
+        // ==================================================
+        // Wallet Type
+        // ==================================================
+
+        walletType: {
+
+            type: String,
+
+            enum: [
+
+                "customer",
+
+                "seller",
+
+                "affiliate",
+
+                "manufacturer",
+
+                "wholesaler",
+
+                "admin"
+
+            ],
+
+            required: true,
+
+            index: true
+
         },
 
-        pending: {
-            type: Number,
-            default: 0
+
+        // ==================================================
+        // Primary Wallet Currency
+        // ==================================================
+
+        currency: {
+
+            type: String,
+
+            default: "NGN",
+
+            required: true,
+
+            uppercase: true,
+
+            trim: true,
+
+            maxlength: 10
+
         },
 
-        frozen: {
+
+        // ==================================================
+        // AVAILABLE BALANCE
+        // ==================================================
+        //
+        // Funds currently available for spending or withdrawal.
+        // Successful withdrawals are deducted from this field.
+        //
+        // ==================================================
+
+        availableBalance: {
+
             type: Number,
-            default: 0
+
+            default: 0,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // PENDING BALANCE
+        // ==================================================
+
+        pendingBalance: {
+
+            type: Number,
+
+            default: 0,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // FROZEN BALANCE
+        // ==================================================
+
+        frozenBalance: {
+
+            type: Number,
+
+            default: 0,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // TOTAL EARNED
+        // ==================================================
+
+        totalEarned: {
+
+            type: Number,
+
+            default: 0,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // TOTAL SPENT
+        // ==================================================
+
+        totalSpent: {
+
+            type: Number,
+
+            default: 0,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // TOTAL WITHDRAWN
+        // ==================================================
+
+        totalWithdrawn: {
+
+            type: Number,
+
+            default: 0,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // REWARD POINTS
+        // ==================================================
+
+        rewardPoints: {
+
+            type: Number,
+
+            default: 0,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // CASHBACK BALANCE
+        // ==================================================
+
+        cashbackBalance: {
+
+            type: Number,
+
+            default: 0,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // LOYALTY LEVEL
+        // ==================================================
+
+        loyaltyLevel: {
+
+            type: String,
+
+            enum: [
+
+                "Bronze",
+
+                "Silver",
+
+                "Gold",
+
+                "Platinum",
+
+                "Diamond"
+
+            ],
+
+            default: "Bronze"
+
+        },
+
+
+        // ==================================================
+        // WALLET STATUS
+        // ==================================================
+
+        isActive: {
+
+            type: Boolean,
+
+            default: true,
+
+            index: true
+
+        },
+
+
+        // ==================================================
+        // WALLET LOCK STATUS
+        // ==================================================
+
+        isLocked: {
+
+            type: Boolean,
+
+            default: false,
+
+            index: true
+
+        },
+
+
+        lockReason: {
+
+            type: String,
+
+            default: "",
+
+            trim: true
+
+        },
+
+
+        // ==================================================
+        // LAST TRANSACTION
+        // ==================================================
+
+        lastTransactionDate: {
+
+            type: Date,
+
+            default: null
+
+        },
+
+
+        // ==================================================
+        // LAST WITHDRAWAL
+        // ==================================================
+
+        lastWithdrawalDate: {
+
+            type: Date,
+
+            default: null
+
+        },
+
+
+        // ==================================================
+        // PRIMARY BANK ACCOUNT
+        // ==================================================
+
+        bankAccount: {
+
+            accountName: {
+
+                type: String,
+
+                default: "",
+
+                trim: true
+
+            },
+
+            accountNumber: {
+
+                type: String,
+
+                default: "",
+
+                trim: true
+
+            },
+
+            bankName: {
+
+                type: String,
+
+                default: "",
+
+                trim: true
+
+            }
+
+        },
+
+
+        // ==================================================
+        // AVAILABLE PAYMENT METHODS
+        // ==================================================
+
+        paymentMethods: [
+
+            {
+
+                type: String,
+
+                trim: true
+
+            }
+
+        ],
+
+
+        // ==================================================
+        // INTERNAL WALLET NOTES
+        // ==================================================
+
+        notes: {
+
+            type: String,
+
+            default: "",
+
+            trim: true
+
+        },
+
+
+        // ==================================================
+        // TRANSACTION LIMITS
+        // ==================================================
+
+        dailyTransactionLimit: {
+
+            type: Number,
+
+            default: 500000,
+
+            min: 0
+
+        },
+
+
+        monthlyTransactionLimit: {
+
+            type: Number,
+
+            default: 10000000,
+
+            min: 0
+
+        },
+
+
+        maximumWalletBalance: {
+
+            type: Number,
+
+            default: 50000000,
+
+            min: 0
+
+        },
+
+
+        // ==================================================
+        // KYC STATUS
+        // ==================================================
+
+        kycStatus: {
+
+            type: String,
+
+            enum: [
+
+                "not-submitted",
+
+                "pending",
+
+                "verified",
+
+                "rejected"
+
+            ],
+
+            default: "not-submitted",
+
+            index: true
+
+        },
+
+
+        kycVerifiedAt: {
+
+            type: Date,
+
+            default: null
+
+        },
+
+
+        // ==================================================
+        // WALLET PIN
+        // ==================================================
+        //
+        // IMPORTANT:
+        // This field must store a securely HASHED PIN.
+        //
+        // The service/controller responsible for setting
+        // the PIN must hash it prior to persistence.
+        //
+        // ==================================================
+
+        walletPin: {
+
+            type: String,
+
+            default: "",
+
+            trim: true
+
+        },
+
+
+        // ==================================================
+        // LAST LOGIN / DEVICE INFORMATION
+        // ==================================================
+
+        lastLogin: {
+
+            type: Date,
+
+            default: null
+
+        },
+
+
+        lastDevice: {
+
+            type: String,
+
+            default: "",
+
+            trim: true
+
+        },
+
+
+        lastIPAddress: {
+
+            type: String,
+
+            default: "",
+
+            trim: true
+
+        },
+
+
+        // ==================================================
+        // PREFERRED WITHDRAWAL METHOD
+        // ==================================================
+        //
+        // "bank-transfer" is used instead of "bank" to
+        // maintain consistency with Withdrawal.withdrawalMethod.
+        //
+        // ==================================================
+
+        preferredWithdrawalMethod: {
+
+            type: String,
+
+            enum: [
+
+                "bank-transfer",
+
+                "wallet",
+
+                "paypal",
+
+                "payoneer",
+
+                "stripe",
+
+                "flutterwave",
+
+                "paystack",
+
+                "crypto",
+
+                "manual"
+
+            ],
+
+            default: "bank-transfer"
+
+        },
+
+
+        // ==================================================
+        // MULTI-CURRENCY BALANCES
+        // ==================================================
+        //
+        // The primary NGN balance remains fully compatible
+        // with the existing withdrawal system.
+        //
+        // This structure enables future support for
+        // additional currencies.
+        //
+        // ==================================================
+
+        balances: [
+
+            {
+
+                currency: {
+
+                    type: String,
+
+                    required: true,
+
+                    uppercase: true,
+
+                    trim: true,
+
+                    maxlength: 10
+
+                },
+
+
+                available: {
+
+                    type: Number,
+
+                    default: 0,
+
+                    min: 0
+
+                },
+
+
+                pending: {
+
+                    type: Number,
+
+                    default: 0,
+
+                    min: 0
+
+                },
+
+
+                frozen: {
+
+                    type: Number,
+
+                    default: 0,
+
+                    min: 0
+
+                }
+
+            }
+
+        ]
+
+    },
+
+    {
+
+        timestamps: true
+
+    }
+
+);
+
+
+// ======================================================
+// WALLET INDEXES
+// ======================================================
+
+walletSchema.index({
+
+    walletType: 1,
+
+    isActive: 1
+
+});
+
+
+walletSchema.index({
+
+    kycStatus: 1,
+
+    isLocked: 1
+
+});
+
+
+walletSchema.index({
+
+    createdAt: -1
+
+});
+
+
+// ======================================================
+// GENERATE SMARTBUY WALLET ID
+// ======================================================
+//
+// IMPORTANT:
+//
+// The system intentionally avoids using countDocuments()
+// to prevent race conditions.
+//
+// Example of unsafe approach:
+//
+//     WAL-000001
+//     WAL-000002
+//
+// Concurrent executions could generate duplicate IDs.
+//
+// Instead, a timestamp combined with an ObjectId segment
+// is used to ensure uniqueness.
+//
+// MongoDB unique index provides an additional safeguard
+// against collisions.
+// ======================================================
+
+walletSchema.pre(
+
+    "save",
+
+    function (next) {
+
+        if (
+
+            !this.isNew ||
+
+            this.walletId
+
+        ) {
+
+            return next();
+
         }
+
+
+        const timestamp = Date.now()
+
+            .toString(36)
+
+            .toUpperCase();
+
+
+        const randomPart =
+
+            new mongoose.Types.ObjectId()
+
+                .toString()
+
+                .slice(-8)
+
+                .toUpperCase();
+
+
+        this.walletId =
+
+            `WAL-${timestamp}-${randomPart}`;
+
+
+        next();
+
     }
-],
-}, {
-    timestamps: true
-});
 
-// ==========================
-// Generate SmartBuy Wallet ID
-// ==========================
+);
 
-walletSchema.pre("save", async function(next){
 
-    if (!this.isNew || this.walletId) {
+// ======================================================
+// EXPORT MODEL
+// ======================================================
 
-        return next();
+module.exports = mongoose.model(
 
-    }
+    "Wallet",
 
-    const count = await this.constructor.countDocuments();
+    walletSchema
 
-    this.walletId = `WAL-${String(count + 1).padStart(6, "0")}`;
-
-    next();
-
-});
-
-// ==========================
-// Export Wallet Model
-// ==========================
-
-module.exports = mongoose.model("Wallet", walletSchema);
+);
