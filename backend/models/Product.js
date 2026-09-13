@@ -327,13 +327,29 @@ const productSchema = new mongoose.Schema({
     ],
     default: "pending"
 },
-//Rejection Reason.
-    rejectionReason: {
+// ======================================================
+// Product Rejection
+// ======================================================
+
+rejectionReason: {
     type: String,
     default: ""
 },
-// Approval. 
-    approvedBy: {
+
+rejectedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+},
+
+rejectedAt: {
+    type: Date
+},
+
+// ======================================================
+// Product Approval
+// ======================================================
+
+approvedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
 },
