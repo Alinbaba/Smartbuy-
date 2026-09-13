@@ -2344,35 +2344,6 @@ exports.cancelOrder = async (req, res) => {
 
         order.status = "cancelled";
 
-        // ======================================================
-// Cancellation Information
-// ======================================================
-
-cancellationReason: {
-
-    type: String,
-
-    default: ""
-
-},
-
-cancelledBy: {
-
-    type: mongoose.Schema.Types.ObjectId,
-
-    ref: "User",
-
-    default: null
-
-},
-
-cancelledAt: {
-
-    type: Date,
-
-    default: null
-
-},
         // ==================================================
         // Save Cancellation Details
         // ==================================================
