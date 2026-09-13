@@ -27,7 +27,7 @@ app.use(cors());
 // ==========================
 // API Routes
 // ==========================
-app.use("/api/admin", require(”./routes/admin”));
+app.use("/api/admin", require("./routes/admin"));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/products", require("./routes/products"));
 app.use("/api/upload", require("./routes/upload"));
