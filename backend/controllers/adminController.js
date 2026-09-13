@@ -2240,44 +2240,7 @@ exports.assignLogistics = async (req, res) => {
         order.shippingStatus = "assigned";
 
         // ======================================================
-// Logistics Information
-// ======================================================
 
-logisticsCompany: {
-
-    type: String,
-
-    default: ""
-
-},
-
-trackingNumber: {
-
-    type: String,
-
-    default: ""
-
-},
-
-shippingStatus: {
-
-    type: String,
-
-    enum: [
-
-        "pending",
-        "assigned",
-        "picked-up",
-        "in-transit",
-        "out-for-delivery",
-        "delivered"
-
-    ],
-
-    default: "pending"
-
-},
-        
         // ==================================================
         // Save Admin Information
         // ==================================================
