@@ -2276,7 +2276,7 @@ shippingStatus: {
 
     default: "pending"
 
-}, you 
+},
         
         // ==================================================
         // Save Admin Information
