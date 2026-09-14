@@ -37,7 +37,7 @@ const generateToken = (user) => {
 
         {
             id: user._id,
-            role: user.role
+            tokenVersion: user.tokenVersion
         },
 
         getJWTSecret(),
@@ -778,11 +778,11 @@ exports.changePassword = async (req, res) => {
 
         user.password = newPassword;
 
-        user.refreshToken = "";
+user.refreshToken = "";
 
+user.tokenVersion += 1;
 
-        await user.save();
-
+await user.save();
 
         return res.status(200).json({
 
@@ -1265,18 +1265,19 @@ exports.resetPassword = async (req, res) => {
 
         user.password = newPassword;
 
-        user.otpCode = "";
+user.otpCode = "";
 
-        user.otpExpires = undefined;
+user.otpExpires = undefined;
 
-        user.loginAttempts = 0;
+user.loginAttempts = 0;
 
-        user.lockUntil = undefined;
+user.lockUntil = undefined;
 
-        user.refreshToken = "";
+user.refreshToken = "";
 
+user.tokenVersion += 1;
 
-        await user.save();
+await user.save();
 
 
         return res.status(200).json({
@@ -1324,11 +1325,13 @@ exports.logoutUser = async (req, res) => {
 
         if (user) {
 
-            user.refreshToken = "";
+    user.refreshToken = "";
 
-            await user.save();
+    user.tokenVersion += 1;
 
-        }
+    await user.save();
+
+}
 
 
         return res.status(200).json({
