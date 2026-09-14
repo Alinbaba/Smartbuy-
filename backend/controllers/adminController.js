@@ -877,7 +877,33 @@ exports.unblockUser = async (req, res) => {
 
         }
 
-    };
+        user.isActive = true;
+
+        await user.save();
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "User has been unblocked successfully.",
+
+            user
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
 
         // ======================================================
 // Change User Role
