@@ -159,11 +159,21 @@ const userSchema = new mongoose.Schema({
     },
 
     refreshToken: {
-        type: String,
-        default: "",
-        select: false
-    },
+    type: String,
+    default: "",
+    select: false
+},
 
+tokenVersion: {
+    type: Number,
+    default: 0,
+    min: 0
+},
+
+lastSeen: {
+    type: Date,
+    default: Date.now
+},
 
     // ==================================================
     // Activity Tracking
