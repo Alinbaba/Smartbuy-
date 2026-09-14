@@ -2,150 +2,321 @@ const Role = require("../models/Role");
 const Permission = require("../models/Permission");
 
 // ======================================================
-// Seed Default SmartBuy Roles
+// SmartBuy System Role Permission Definition Version
 // ======================================================
+//
+// Increase this number only when SmartBuy's built-in
+// system-role permission definitions are intentionally
+// changed.
+//
+// Existing Super Admin permission changes are preserved
+// when the database role is already on the current version.
+//
+// ======================================================
+
+const SYSTEM_ROLE_PERMISSION_VERSION = 1;
 
 // ======================================================
 // Seed Default SmartBuy Roles
 // ======================================================
 
 const seedRoles = async () => {
-
     try {
+        // ===============================================
+        // Load active system permissions
+        // ===============================================
+
+        const allPermissions = await Permission.find({
+            isActive: true
+        }).select("_id name");
+
+        if (!allPermissions.length) {
+            throw new Error(
+                "No active permissions were found. Seed permissions before roles."
+            );
+        }
 
         // ===============================================
-        // Load all permissions
+        // Build permission map
         // ===============================================
 
-        const allPermissions = await Permission.find();
+        const permissionMap = new Map();
 
-        const permissionMap = {};
-
-        allPermissions.forEach(permission => {
-
-            permissionMap[permission.name] = permission._id;
-
-        });
+        for (const permission of allPermissions) {
+            permissionMap.set(
+                permission.name,
+                permission._id
+            );
+        }
 
         // ===============================================
-        // Default Roles
+        // Permission resolver
+        // ===============================================
+
+        const getRequiredPermissions = (roleName, permissionNames) => {
+            const permissions = [];
+
+            for (const permissionName of permissionNames) {
+                const permissionId = permissionMap.get(permissionName);
+
+                if (!permissionId) {
+                    throw new Error(
+                        `Required permission "${permissionName}" is missing for system role "${roleName}".`
+                    );
+                }
+
+                permissions.push(permissionId);
+            }
+
+            return permissions;
+        };
+
+        // ===============================================
+        // Default system roles
         // ===============================================
 
         const defaultRoles = [
-
             {
                 name: "super-admin",
-                description: "Full system access.",
+
+                description:
+                    "Full system access and ultimate platform authority.",
+
                 dashboard: "super-admin",
+
                 isSystemRole: true,
+
+                isActive: true,
+
+                deletable: false,
+
                 priority: 100,
-                permissions: allPermissions.map(p => p._id)
+
+                permissions: allPermissions.map(
+                    permission => permission._id
+                ),
+
+                permissionVersion:
+                    SYSTEM_ROLE_PERMISSION_VERSION
             },
 
             {
                 name: "admin",
-                description: "General administration.",
+
+                description:
+                    "General platform administration with controlled administrative access.",
+
                 dashboard: "admin",
+
                 isSystemRole: true,
+
+                isActive: true,
+
+                deletable: false,
+
                 priority: 90,
-                permissions: [
 
-                    permissionMap["dashboard.view"],
+                permissions: getRequiredPermissions(
+                    "admin",
+                    [
+                        "dashboard.view",
 
-                    permissionMap["users.view"],
-                    permissionMap["users.create"],
-                    permissionMap["users.edit"],
+                        "users.view",
+                        "users.create",
+                        "users.edit",
 
-                    permissionMap["products.view"],
-                    permissionMap["products.create"],
-                    permissionMap["products.edit"],
+                        "products.view",
+                        "products.create",
+                        "products.edit",
 
-                    permissionMap["orders.view"],
-                    permissionMap["orders.edit"]
+                        "orders.view",
+                        "orders.edit"
+                    ]
+                ),
 
-                ].filter(Boolean)
+                permissionVersion:
+                    SYSTEM_ROLE_PERMISSION_VERSION
             },
 
             {
                 name: "finance-admin",
-                description: "Finance department.",
+
+                description:
+                    "Finance department administration for payments, transactions, wallets and withdrawals.",
+
                 dashboard: "finance",
+
                 isSystemRole: true,
+
+                isActive: true,
+
+                deletable: false,
+
                 priority: 80,
-                permissions: [
 
-                    permissionMap["payments.view"],
+                permissions: getRequiredPermissions(
+                    "finance-admin",
+                    [
+                        "dashboard.view",
 
-                    permissionMap["transactions.view"],
-                    permissionMap["transactions.export"],
-                    permissionMap["transactions.manage"],
+                        "payments.view",
 
-                    permissionMap["wallets.view"],
-                    permissionMap["wallets.credit"],
-                    permissionMap["wallets.debit"],
-                    permissionMap["wallets.freeze"],
-                    permissionMap["wallets.manage"],
+                        "transactions.view",
+                        "transactions.export",
+                        "transactions.manage",
 
-                    permissionMap["withdrawals.view"],
-                    permissionMap["withdrawals.approve"],
-                    permissionMap["withdrawals.reject"],
-                    permissionMap["withdrawals.manage"]
+                        "wallets.view",
+                        "wallets.credit",
+                        "wallets.debit",
+                        "wallets.freeze",
+                        "wallets.manage",
 
-                ].filter(Boolean)
+                        "withdrawals.view",
+                        "withdrawals.approve",
+                        "withdrawals.reject",
+                        "withdrawals.manage"
+                    ]
+                ),
+
+                permissionVersion:
+                    SYSTEM_ROLE_PERMISSION_VERSION
             }
-
         ];
 
         // ===============================================
-        // Create Roles
+        // Create / synchronize system roles
         // ===============================================
 
-        for (const role of defaultRoles) {
-
-            const exists = await Role.findOne({
-
-                name: role.name
-
+        for (const roleDefinition of defaultRoles) {
+            const existingRole = await Role.findOne({
+                name: roleDefinition.name
             });
 
-            if (!exists) {
+            // ===========================================
+            // Create missing role
+            // ===========================================
 
-                await Role.create(role);
+            if (!existingRole) {
+                await Role.create(roleDefinition);
 
-                console.log(`✅ Role created: ${role.name}`);
-
-            } else {
-
-                await Role.updateOne(
-
-                    { _id: exists._id },
-
-                    {
-
-                        $set: {
-
-                            permissions: role.permissions
-
-                        }
-
-                    }
-
+                console.log(
+                    `✅ System role created: ${roleDefinition.name}`
                 );
 
-                console.log(`✅ Role updated: ${role.name}`);
-
+                continue;
             }
 
+            // ===========================================
+            // Protect system-role identity
+            // ===========================================
+
+            const updates = {};
+
+            if (existingRole.isSystemRole !== true) {
+                updates.isSystemRole = true;
+            }
+
+            if (existingRole.deletable !== false) {
+                updates.deletable = false;
+            }
+
+            if (existingRole.isActive !== true) {
+                updates.isActive = true;
+            }
+
+            if (
+                existingRole.description !==
+                roleDefinition.description
+            ) {
+                updates.description =
+                    roleDefinition.description;
+            }
+
+            if (
+                existingRole.dashboard !==
+                roleDefinition.dashboard
+            ) {
+                updates.dashboard =
+                    roleDefinition.dashboard;
+            }
+
+            if (
+                existingRole.priority !==
+                roleDefinition.priority
+            ) {
+                updates.priority =
+                    roleDefinition.priority;
+            }
+
+            // ===========================================
+            // Controlled permission synchronization
+            // ===========================================
+            //
+            // Only synchronize permissions when the stored
+            // role is using an older definition version.
+            //
+            // Once the role reaches the current version,
+            // Super Admin can manage its permissions without
+            // every server restart overwriting those changes.
+            //
+            // ===========================================
+
+            const storedPermissionVersion =
+                Number(existingRole.permissionVersion || 0);
+
+            if (
+                storedPermissionVersion <
+                SYSTEM_ROLE_PERMISSION_VERSION
+            ) {
+                updates.permissions =
+                    roleDefinition.permissions;
+
+                updates.permissionVersion =
+                    SYSTEM_ROLE_PERMISSION_VERSION;
+
+                console.log(
+                    `🔄 System role permissions synchronized: ${roleDefinition.name}`
+                );
+            }
+
+            // ===========================================
+            // Apply metadata / permission updates
+            // ===========================================
+
+            if (Object.keys(updates).length > 0) {
+                await Role.updateOne(
+                    {
+                        _id: existingRole._id
+                    },
+                    {
+                        $set: updates
+                    }
+                );
+
+                console.log(
+                    `✅ System role synchronized: ${roleDefinition.name}`
+                );
+            } else {
+                console.log(
+                    `✅ System role verified: ${roleDefinition.name}`
+                );
+            }
         }
 
-        console.log("✅ SmartBuy roles seeded successfully.");
-
+        console.log(
+            "✅ SmartBuy system roles seeded successfully."
+        );
     } catch (error) {
+        console.error(
+            "❌ SmartBuy role seeding failed:",
+            error.message
+        );
 
-        console.error(error);
-
+        // Important:
+        // Do not allow the application to start with an
+        // incomplete or inconsistent security configuration.
+        throw error;
     }
-
 };
 
 module.exports = seedRoles;
