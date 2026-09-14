@@ -1,5 +1,15 @@
 const Role = require("../models/Role");
 const Permission = require("../models/Permission");
+
+// ======================================
+// Helper: Check Super Admin
+// ======================================
+
+const isSuperAdmin = (req) => {
+    return req.user && req.user.role === "super-admin";
+};
+
+
 // ======================================
 // Create Role
 // ======================================
@@ -8,10 +18,39 @@ exports.createRole = async (req, res) => {
 
     try {
 
-        const { name, description, permissions } = req.body;
+        const {
+            name,
+            description,
+            permissions
+        } = req.body;
+
+        // Basic validation
+        if (!name || !name.trim()) {
+
+            return res.status(400).json({
+                success: false,
+                message: "Role name is required."
+            });
+
+        }
+
+        // Prevent ordinary admins from creating Super Admin
+        if (
+            name.trim().toLowerCase() === "super-admin" &&
+            !isSuperAdmin(req)
+        ) {
+
+            return res.status(403).json({
+                success: false,
+                message: "Only Super Admin can create the Super Admin role."
+            });
+
+        }
 
         // Check if role already exists
-        const existingRole = await Role.findOne({ name });
+        const existingRole = await Role.findOne({
+            name: name.trim()
+        });
 
         if (existingRole) {
 
@@ -22,11 +61,45 @@ exports.createRole = async (req, res) => {
 
         }
 
+        // Validate permissions if supplied
+        let validPermissions = [];
+
+        if (permissions !== undefined) {
+
+            if (!Array.isArray(permissions)) {
+
+                return res.status(400).json({
+                    success: false,
+                    message: "Permissions must be an array."
+                });
+
+            }
+
+            const uniquePermissions = [
+                ...new Set(permissions.map(String))
+            ];
+
+            const permissionCount = await Permission.countDocuments({
+                _id: { $in: uniquePermissions }
+            });
+
+            if (permissionCount !== uniquePermissions.length) {
+
+                return res.status(400).json({
+                    success: false,
+                    message: "One or more permission IDs are invalid."
+                });
+
+            }
+
+            validPermissions = uniquePermissions;
+        }
+
         const role = await Role.create({
 
-            name,
-            description,
-            permissions
+            name: name.trim(),
+            description: description || "",
+            permissions: validPermissions
 
         });
 
@@ -51,6 +124,7 @@ exports.createRole = async (req, res) => {
 
 };
 
+
 // ======================================
 // Get All Roles
 // ======================================
@@ -59,7 +133,9 @@ exports.getRoles = async (req, res) => {
 
     try {
 
-        const roles = await Role.find().sort({ createdAt: -1 });
+        const roles = await Role.find()
+            .populate("permissions")
+            .sort({ createdAt: -1 });
 
         res.status(200).json({
 
@@ -82,6 +158,7 @@ exports.getRoles = async (req, res) => {
 
 };
 
+
 // ======================================
 // Get Single Role
 // ======================================
@@ -90,7 +167,8 @@ exports.getRoleById = async (req, res) => {
 
     try {
 
-        const role = await Role.findById(req.params.id);
+        const role = await Role.findById(req.params.id)
+            .populate("permissions");
 
         if (!role) {
 
@@ -123,6 +201,7 @@ exports.getRoleById = async (req, res) => {
 
 };
 
+
 // ======================================
 // Update Role
 // ======================================
@@ -131,18 +210,7 @@ exports.updateRole = async (req, res) => {
 
     try {
 
-        const role = await Role.findByIdAndUpdate(
-
-            req.params.id,
-
-            req.body,
-
-            {
-                new: true,
-                runValidators: true
-            }
-
-        );
+        const role = await Role.findById(req.params.id);
 
         if (!role) {
 
@@ -154,6 +222,54 @@ exports.updateRole = async (req, res) => {
             });
 
         }
+
+        // Protected system roles can only be modified by Super Admin
+        if (role.isSystemRole && !isSuperAdmin(req)) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "Only Super Admin can modify a system role."
+
+            });
+
+        }
+
+        // Only allow safe fields to be updated
+        const allowedFields = [
+            "name",
+            "description",
+            "priority",
+            "dashboard",
+            "isActive"
+        ];
+
+        allowedFields.forEach(field => {
+
+            if (req.body[field] !== undefined) {
+
+                role[field] = req.body[field];
+
+            }
+
+        });
+
+        // Prevent changing a role into Super Admin
+        if (
+            role.name.trim().toLowerCase() === "super-admin" &&
+            !isSuperAdmin(req)
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "Only Super Admin can manage the Super Admin role."
+
+            });
+
+        }
+
+        await role.save();
 
         res.status(200).json({
 
@@ -176,6 +292,7 @@ exports.updateRole = async (req, res) => {
 
 };
 
+
 // ======================================
 // Delete Role
 // ======================================
@@ -192,6 +309,30 @@ exports.deleteRole = async (req, res) => {
 
                 success: false,
                 message: "Role not found."
+
+            });
+
+        }
+
+        // System roles are protected
+        if (role.isSystemRole) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "System roles cannot be deleted."
+
+            });
+
+        }
+
+        // Role must explicitly be marked deletable
+        if (!role.deletable) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "This role is not marked as deletable."
 
             });
 
@@ -218,15 +359,28 @@ exports.deleteRole = async (req, res) => {
     }
 
 };
-// ==================================================
-//>>> Assign Permissions To A Role
-// ==================================================
+
+
+// ======================================
+// Assign Permissions To A Role
+// ======================================
 
 exports.assignPermissions = async (req, res) => {
 
     try {
 
         const { permissions } = req.body;
+
+        if (!Array.isArray(permissions)) {
+
+            return res.status(400).json({
+
+                success: false,
+                message: "Permissions must be an array."
+
+            });
+
+        }
 
         const role = await Role.findById(req.params.id);
 
@@ -241,15 +395,31 @@ exports.assignPermissions = async (req, res) => {
 
         }
 
-        // Validate all permission IDs
+        // Only Super Admin can modify system roles
+        if (role.isSystemRole && !isSuperAdmin(req)) {
 
+            return res.status(403).json({
+
+                success: false,
+                message: "Only Super Admin can modify permissions of a system role."
+
+            });
+
+        }
+
+        // Remove duplicate permission IDs
+        const uniquePermissions = [
+            ...new Set(permissions.map(String))
+        ];
+
+        // Validate all permission IDs
         const permissionCount = await Permission.countDocuments({
 
-            _id: { $in: permissions }
+            _id: { $in: uniquePermissions }
 
         });
 
-        if (permissionCount !== permissions.length) {
+        if (permissionCount !== uniquePermissions.length) {
 
             return res.status(400).json({
 
@@ -260,7 +430,7 @@ exports.assignPermissions = async (req, res) => {
 
         }
 
-        role.permissions = permissions;
+        role.permissions = uniquePermissions;
 
         await role.save();
 
@@ -288,9 +458,10 @@ exports.assignPermissions = async (req, res) => {
 
 };
 
-// ==================================================
-// >>>Get Role With Permissions
-// ==================================================
+
+// ======================================
+// Get Role With Permissions
+// ======================================
 
 exports.getRolePermissions = async (req, res) => {
 
@@ -330,9 +501,10 @@ exports.getRolePermissions = async (req, res) => {
 
 };
 
-// ==================================================
-// >>>Remove All Permissions From Role
-// ==================================================
+
+// ======================================
+// Remove All Permissions From Role
+// ======================================
 
 exports.clearPermissions = async (req, res) => {
 
@@ -346,6 +518,18 @@ exports.clearPermissions = async (req, res) => {
 
                 success: false,
                 message: "Role not found."
+
+            });
+
+        }
+
+        // Only Super Admin can modify system roles
+        if (role.isSystemRole && !isSuperAdmin(req)) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "Only Super Admin can modify permissions of a system role."
 
             });
 
