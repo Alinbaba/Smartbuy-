@@ -10,23 +10,51 @@ const {
     deletePermission
 } = require("../controllers/permissionController");
 
+const { protect } = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authorize");
+
 // ==================================================
 // Permission Routes
 // ==================================================
 
 // Create Permission
-router.post("/", createPermission);
+router.post(
+    "/",
+    protect,
+    authorize("permissions.manage"),
+    createPermission
+);
 
 // Get All Permissions
-router.get("/", getPermissions);
+router.get(
+    "/",
+    protect,
+    authorize("permissions.view"),
+    getPermissions
+);
 
 // Get Single Permission
-router.get("/:id", getPermissionById);
+router.get(
+    "/:id",
+    protect,
+    authorize("permissions.view"),
+    getPermissionById
+);
 
 // Update Permission
-router.put("/:id", updatePermission);
+router.put(
+    "/:id",
+    protect,
+    authorize("permissions.manage"),
+    updatePermission
+);
 
 // Delete Permission
-router.delete("/:id", deletePermission);
+router.delete(
+    "/:id",
+    protect,
+    authorize("permissions.manage"),
+    deletePermission
+);
 
 module.exports = router;
