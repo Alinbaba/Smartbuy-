@@ -203,6 +203,19 @@ const orderSchema = new mongoose.Schema({
             default: ""
         },
 
+        shippingStatus: {
+    type: String,
+    enum: [
+        "pending",
+        "assigned",
+        "picked-up",
+        "in-transit",
+        "out-for-delivery",
+        "delivered"
+    ],
+    default: "pending"
+     },
+
         shippingMethod: {
             type: String,
             default: "Standard"
