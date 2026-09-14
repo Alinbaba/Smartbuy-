@@ -6463,6 +6463,19 @@ const estimatedCompletion = new Date(
     description
 
 });
+        return res.status(201).json({
+        success: true,
+        message: "Withdrawal request created successfully.",
+        data: withdrawal
+    });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
 
 // ======================================================
 // Approve Withdrawal
