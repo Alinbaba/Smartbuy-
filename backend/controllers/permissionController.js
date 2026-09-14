@@ -1,6 +1,15 @@
 const Permission = require("../models/Permission");
 
 // ==================================================
+// Helper: Check Super Admin
+// ==================================================
+
+const isSuperAdmin = (req) => {
+    return req.user && req.user.role === "super-admin";
+};
+
+
+// ==================================================
 // Create Permission
 // ==================================================
 
@@ -14,11 +23,27 @@ exports.createPermission = async (req, res) => {
             description
         } = req.body;
 
-        // Generate permission name automatically
-        const name = `${module}.${action}`;
+        // Validate required fields
+        if (!module || !action) {
+
+            return res.status(400).json({
+
+                success: false,
+                message: "Module and action are required."
+
+            });
+
+        }
+
+        const cleanModule = module.trim();
+        const cleanAction = action.trim();
+
+        const name = `${cleanModule}.${cleanAction}`;
 
         // Check if permission already exists
-        const existingPermission = await Permission.findOne({ name });
+        const existingPermission = await Permission.findOne({
+            name
+        });
 
         if (existingPermission) {
 
@@ -34,9 +59,11 @@ exports.createPermission = async (req, res) => {
         const permission = await Permission.create({
 
             name,
-            module,
-            action,
-            description
+            module: cleanModule,
+            action: cleanAction,
+            description: description || "",
+            isSystemPermission: false,
+            isActive: true
 
         });
 
@@ -61,6 +88,7 @@ exports.createPermission = async (req, res) => {
 
 };
 
+
 // ==================================================
 // Get All Permissions
 // ==================================================
@@ -70,7 +98,10 @@ exports.getPermissions = async (req, res) => {
     try {
 
         const permissions = await Permission.find()
-            .sort({ module: 1, action: 1 });
+            .sort({
+                module: 1,
+                action: 1
+            });
 
         res.status(200).json({
 
@@ -92,6 +123,7 @@ exports.getPermissions = async (req, res) => {
     }
 
 };
+
 
 // ==================================================
 // Get Permission By ID
@@ -134,6 +166,7 @@ exports.getPermissionById = async (req, res) => {
 
 };
 
+
 // ==================================================
 // Update Permission
 // ==================================================
@@ -155,16 +188,133 @@ exports.updatePermission = async (req, res) => {
 
         }
 
-        permission.module = req.body.module || permission.module;
-        permission.action = req.body.action || permission.action;
-        permission.description = req.body.description || permission.description;
-        permission.isActive =
-            req.body.isActive !== undefined
-                ? req.body.isActive
-                : permission.isActive;
+        // System permissions are protected
+        if (
+            permission.isSystemPermission &&
+            !isSuperAdmin(req)
+        ) {
 
-        // Update permission name automatically
-        permission.name = `${permission.module}.${permission.action}`;
+            return res.status(403).json({
+
+                success: false,
+                message: "Only Super Admin can modify a system permission."
+
+            });
+
+        }
+
+        /*
+         * IMPORTANT:
+         *
+         * We do not allow normal administrators to rename
+         * system permissions because roles depend on
+         * permission names.
+         */
+
+        if (
+            permission.isSystemPermission &&
+            !isSuperAdmin(req)
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+                message: "System permission structure is protected."
+
+            });
+
+        }
+
+        // Update module
+        if (req.body.module !== undefined) {
+
+            if (
+                typeof req.body.module !== "string" ||
+                !req.body.module.trim()
+            ) {
+
+                return res.status(400).json({
+
+                    success: false,
+                    message: "Module must be a valid string."
+
+                });
+
+            }
+
+            permission.module = req.body.module.trim();
+
+        }
+
+        // Update action
+        if (req.body.action !== undefined) {
+
+            if (
+                typeof req.body.action !== "string" ||
+                !req.body.action.trim()
+            ) {
+
+                return res.status(400).json({
+
+                    success: false,
+                    message: "Action must be a valid string."
+
+                });
+
+            }
+
+            permission.action = req.body.action.trim();
+
+        }
+
+        // Update description
+        if (req.body.description !== undefined) {
+
+            permission.description = req.body.description;
+
+        }
+
+        // Update active state
+        if (req.body.isActive !== undefined) {
+
+            if (typeof req.body.isActive !== "boolean") {
+
+                return res.status(400).json({
+
+                    success: false,
+                    message: "isActive must be true or false."
+
+                });
+
+            }
+
+            permission.isActive = req.body.isActive;
+
+        }
+
+        // Generate new name
+        const newName = `${permission.module}.${permission.action}`;
+
+        // Check duplicate name
+        const duplicate = await Permission.findOne({
+
+            name: newName,
+            _id: { $ne: permission._id }
+
+        });
+
+        if (duplicate) {
+
+            return res.status(400).json({
+
+                success: false,
+                message: "Another permission with this name already exists."
+
+            });
+
+        }
+
+        permission.name = newName;
 
         await permission.save();
 
@@ -189,6 +339,7 @@ exports.updatePermission = async (req, res) => {
 
 };
 
+
 // ==================================================
 // Delete Permission
 // ==================================================
@@ -210,7 +361,7 @@ exports.deletePermission = async (req, res) => {
 
         }
 
-        // Prevent deleting system permissions
+        // System permissions cannot be deleted
         if (permission.isSystemPermission) {
 
             return res.status(403).json({
