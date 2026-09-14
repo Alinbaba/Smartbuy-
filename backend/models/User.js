@@ -362,7 +362,15 @@ lastSeen: {
         type: Date,
         select: false
     },
-
+otpPurpose: {
+    type: String,
+    enum: [
+        "email-verification",
+        "phone-verification",
+        "password-reset"
+    ],
+    select: false
+},
 
     // ==================================================
     // Wallet / Rewards
