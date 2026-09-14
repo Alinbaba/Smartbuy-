@@ -432,4 +432,254 @@ exports.updateUser = async (req, res) => {
 
         allowedFields.forEach((field) => {
 
-            if (req.body[field] !==
+            if (req.body[field] !== undefined) {
+
+                user[field] = req.body[field];
+
+            }
+
+        });
+
+
+        // ------------------------------------------
+        // Account activation
+        // ------------------------------------------
+
+        if (req.body.isActive !== undefined) {
+
+            if (!isSuperAdmin(req)) {
+
+                return res.status(403).json({
+
+                    success: false,
+
+                    message:
+                        "Only Super Admin can change account activation status."
+
+                });
+
+            }
+
+            user.isActive = req.body.isActive;
+
+        }
+
+
+        // ------------------------------------------
+        // Verification status
+        // ------------------------------------------
+
+        if (req.body.isVerified !== undefined) {
+
+            if (!isSuperAdmin(req)) {
+
+                return res.status(403).json({
+
+                    success: false,
+
+                    message:
+                        "Only Super Admin can change verification status."
+
+                });
+
+            }
+
+            user.isVerified = req.body.isVerified;
+
+        }
+
+
+        // ------------------------------------------
+        // Prevent direct password modification
+        // ------------------------------------------
+
+        if (req.body.password !== undefined) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Password changes must use the password-security endpoint."
+
+            });
+
+        }
+
+
+        // ------------------------------------------
+        // Prevent modification of security fields
+        // ------------------------------------------
+
+        const forbiddenFields = [
+
+            "password",
+            "otpCode",
+            "refreshToken",
+            "passwordResetToken",
+            "resetToken",
+            "loginAttempts",
+            "lockUntil",
+            "lastLogin",
+            "lastLoginIP",
+            "twoFactorSecret",
+            "twoFactorCode",
+            "otpVerified",
+            "wallet",
+            "reward",
+            "userId"
+
+        ];
+
+
+        for (const field of forbiddenFields) {
+
+            if (req.body[field] !== undefined) {
+
+                return res.status(400).json({
+
+                    success: false,
+
+                    message:
+                        `The field '${field}' cannot be modified through this endpoint.`
+
+                });
+
+            }
+
+        }
+
+
+        await user.save();
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "User updated successfully.",
+
+            user: sanitizeUser(user)
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
+
+
+// ======================================================
+// Delete User
+// ======================================================
+
+exports.deleteUser = async (req, res) => {
+
+    try {
+
+        const user = await User.findById(req.params.id);
+
+        if (!user) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "User not found."
+
+            });
+
+        }
+
+
+        // ------------------------------------------
+        // Prevent self deletion
+        // ------------------------------------------
+
+        if (
+            user._id.toString() === req.user._id.toString()
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message: "You cannot delete your own account."
+
+            });
+
+        }
+
+
+        // ------------------------------------------
+        // Super Admin account protection
+        // ------------------------------------------
+
+        if (user.role === "super-admin") {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "The Super Admin account cannot be deleted through this endpoint."
+
+            });
+
+        }
+
+
+        // ------------------------------------------
+        // Protected administrator accounts
+        // ------------------------------------------
+
+        if (
+            protectedRoles.includes(user.role) &&
+            !isSuperAdmin(req)
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "Only Super Admin can delete a protected administrator account."
+
+            });
+
+        }
+
+
+        await user.deleteOne();
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message: "User deleted successfully."
+
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+
+            success: false,
+
+            message: error.message
+
+        });
+
+    }
+
+};
