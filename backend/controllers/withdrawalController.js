@@ -1514,3 +1514,599 @@ exports.rejectWithdrawal = async (req, res) => {
     }
 
 };
+
+// ======================================================
+// CANCEL WITHDRAWAL
+// ======================================================
+//
+// pending → cancelled
+//
+// Accessible to the withdrawal owner only.
+// ======================================================
+
+exports.cancelWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal =
+            await Withdrawal.findById(
+                req.params.id
+            );
+
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Withdrawal not found."
+
+            });
+
+        }
+
+
+        if (
+            withdrawal.user.toString() !==
+            req.user._id.toString()
+        ) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message:
+                    "You are not authorized to cancel this withdrawal."
+
+            });
+
+        }
+
+
+        if (
+            withdrawal.status !==
+            "pending"
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only pending withdrawals can be cancelled."
+
+            });
+
+        }
+
+
+        const oldStatus =
+            withdrawal.status;
+
+
+        withdrawal.status =
+            "cancelled";
+
+        withdrawal.cancelledBy =
+            req.user._id;
+
+        withdrawal.cancelledAt =
+            new Date();
+
+
+        await withdrawal.save();
+
+
+        await createAuditLog({
+
+            req,
+
+            user:
+                req.user,
+
+            action:
+                "CANCEL_WITHDRAWAL",
+
+            module:
+                "withdrawal",
+
+            description:
+                "Withdrawal cancelled by user.",
+
+            targetModel:
+                "Withdrawal",
+
+            targetId:
+                withdrawal._id,
+
+            targetName:
+                withdrawal.withdrawalId,
+
+            oldValues: {
+
+                status:
+                    oldStatus
+
+            },
+
+            newValues: {
+
+                status:
+                    withdrawal.status,
+
+                cancelledBy:
+                    withdrawal.cancelledBy,
+
+                cancelledAt:
+                    withdrawal.cancelledAt
+
+            },
+
+            changes: [
+
+                "status",
+                "cancelledBy",
+                "cancelledAt"
+
+            ]
+
+        });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal cancelled successfully.",
+
+            withdrawal
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Cancel Withdrawal Error:",
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                error.message
+
+        });
+
+    }
+
+};
+
+
+// ======================================================
+// MARK WITHDRAWAL AS FAILED
+// ======================================================
+//
+// processing → failed
+// ======================================================
+
+exports.failWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal =
+            await Withdrawal.findById(
+                req.params.id
+            );
+
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Withdrawal not found."
+
+            });
+
+        }
+
+
+        if (
+            withdrawal.status !==
+            "processing"
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only processing withdrawals can be marked as failed."
+
+            });
+
+        }
+
+
+        const reason =
+            String(
+                req.body.failureReason ||
+                "Withdrawal failed during processing."
+            ).trim();
+
+
+        const oldStatus =
+            withdrawal.status;
+
+
+        withdrawal.status =
+            "failed";
+
+        withdrawal.failedAt =
+            new Date();
+
+        withdrawal.failureReason =
+            reason;
+
+
+        await withdrawal.save();
+
+
+        await createAuditLog({
+
+            req,
+
+            user:
+                req.user,
+
+            action:
+                "FAIL_WITHDRAWAL",
+
+            module:
+                "withdrawal",
+
+            description:
+                "Withdrawal marked as failed.",
+
+            targetModel:
+                "Withdrawal",
+
+            targetId:
+                withdrawal._id,
+
+            targetName:
+                withdrawal.withdrawalId,
+
+            oldValues: {
+
+                status:
+                    oldStatus
+
+            },
+
+            newValues: {
+
+                status:
+                    withdrawal.status,
+
+                failedAt:
+                    withdrawal.failedAt,
+
+                failureReason:
+                    withdrawal.failureReason
+
+            },
+
+            changes: [
+
+                "status",
+                "failedAt",
+                "failureReason"
+
+            ]
+
+        });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal marked as failed.",
+
+            withdrawal
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Fail Withdrawal Error:",
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                error.message
+
+        });
+
+    }
+
+};
+
+
+// ======================================================
+// RETRY FAILED WITHDRAWAL
+// ======================================================
+//
+// failed → processing
+// ======================================================
+
+exports.retryFailedWithdrawal = async (req, res) => {
+
+    try {
+
+        const withdrawal =
+            await Withdrawal.findById(
+                req.params.id
+            );
+
+
+        if (!withdrawal) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message:
+                    "Withdrawal not found."
+
+            });
+
+        }
+
+
+        if (
+            withdrawal.status !==
+            "failed"
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Only failed withdrawals can be retried."
+
+            });
+
+        }
+
+
+        const oldStatus =
+            withdrawal.status;
+
+
+        withdrawal.status =
+            "processing";
+
+        withdrawal.estimatedCompletion =
+            new Date(
+                Date.now() +
+                (30 * 60 * 1000)
+            );
+
+
+        await withdrawal.save();
+
+
+        await createAuditLog({
+
+            req,
+
+            user:
+                req.user,
+
+            action:
+                "RETRY_WITHDRAWAL",
+
+            module:
+                "withdrawal",
+
+            description:
+                "Failed withdrawal moved back to processing.",
+
+            targetModel:
+                "Withdrawal",
+
+            targetId:
+                withdrawal._id,
+
+            targetName:
+                withdrawal.withdrawalId,
+
+            oldValues: {
+
+                status:
+                    oldStatus
+
+            },
+
+            newValues: {
+
+                status:
+                    withdrawal.status,
+
+                estimatedCompletion:
+                    withdrawal.estimatedCompletion
+
+            },
+
+            changes: [
+
+                "status",
+                "estimatedCompletion"
+
+            ]
+
+        });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal retry initiated.",
+
+            withdrawal
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Retry Withdrawal Error:",
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                error.message
+
+        });
+
+    }
+
+};
+
+
+// ======================================================
+// GET WITHDRAWAL SUMMARY
+// ======================================================
+//
+// Returns aggregate withdrawal statistics for the
+// authenticated user.
+// ======================================================
+
+exports.getWithdrawalSummary = async (req, res) => {
+
+    try {
+
+        const summary =
+            await Withdrawal.aggregate([
+
+                {
+                    $match: {
+                        user: req.user._id
+                    }
+                },
+
+                {
+                    $group: {
+
+                        _id: null,
+
+                        totalWithdrawals: {
+                            $sum: 1
+                        },
+
+                        totalAmount: {
+                            $sum: "$amount"
+                        },
+
+                        totalCompleted: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ["$status", "completed"] },
+                                    1,
+                                    0
+                                ]
+                            }
+                        },
+
+                        totalPending: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ["$status", "pending"] },
+                                    1,
+                                    0
+                                ]
+                            }
+                        },
+
+                        totalFailed: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ["$status", "failed"] },
+                                    1,
+                                    0
+                                ]
+                            }
+                        }
+
+                    }
+                }
+
+            ]);
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            summary:
+                summary[0] || {
+
+                    totalWithdrawals: 0,
+                    totalAmount: 0,
+                    totalCompleted: 0,
+                    totalPending: 0,
+                    totalFailed: 0
+
+                }
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Get Withdrawal Summary Error:",
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                error.message
+
+        });
+
+    }
+
+};
