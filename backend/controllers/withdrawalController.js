@@ -1444,3 +1444,73 @@ exports.rejectWithdrawal = async (req, res) => {
                 withdrawal._id,
 
             targetName:
+                
+                withdrawal.withdrawalId,
+
+            oldValues: {
+
+                status:
+                    oldStatus
+
+            },
+
+            newValues: {
+
+                status:
+                    withdrawal.status,
+
+                rejectedBy:
+                    withdrawal.rejectedBy,
+
+                rejectedAt:
+                    withdrawal.rejectedAt,
+
+                rejectionReason:
+                    withdrawal.rejectionReason
+
+            },
+
+            changes: [
+
+                "status",
+                "rejectedBy",
+                "rejectedAt",
+                "rejectionReason"
+
+            ]
+
+        });
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Withdrawal rejected successfully.",
+
+            withdrawal
+
+        });
+
+
+    } catch (error) {
+
+        console.error(
+            "Reject Withdrawal Error:",
+            error
+        );
+
+
+        return res.status(500).json({
+
+            success: false,
+
+            message:
+                error.message
+
+        });
+
+    }
+
+};
