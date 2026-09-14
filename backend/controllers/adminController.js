@@ -877,6 +877,8 @@ exports.unblockUser = async (req, res) => {
 
         }
 
+    };
+
         // ======================================================
 // Change User Role
 // ======================================================
@@ -5318,49 +5320,55 @@ exports.debitWallet = async (req, res) => {
 
         }
 
-        wallet.availableBalance -= Number(amount);
+        const result = await executeFinancialTransaction(async (session) => {
 
-        wallet.totalSpent += Number(amount);
+            wallet.availableBalance -= Number(amount);
 
-        wallet.lastTransactionDate = new Date();
+            wallet.totalSpent += Number(amount);
 
-        await wallet.save({session});
-        
-await Transaction.create([{
+            wallet.lastTransactionDate = new Date();
 
-    user: wallet.user,
+            await wallet.save({ session });
 
-    wallet: wallet._id,
+            await Transaction.create([{
 
-    transactionType: "adjustment",
+                user: wallet.user,
 
-    amount: Number(amount),
+                wallet: wallet._id,
 
-    currency: wallet.currency,
+                transactionType: "adjustment",
 
-    paymentMethod: "wallet",
+                amount: Number(amount),
 
-    transactionDirection: "debit",
+                currency: wallet.currency,
 
-    status: "successful",
+                paymentMethod: "wallet",
 
-    balanceBefore: balanceBefore,
+                transactionDirection: "debit",
 
-    balanceAfter: wallet.availableBalance,
+                status: "successful",
 
-    description: description || "Wallet debited"
+                balanceBefore: balanceBefore,
 
-}], { session });
+                balanceAfter: wallet.availableBalance,
+
+                description: description || "Wallet debited"
+
+            }], { session });
+
+            return wallet;
+
+        });
+
         res.status(200).json({
 
             success: true,
 
             message: "Wallet debited successfully.",
 
-            data: wallet
+            data: result
 
         });
-
     } catch (error) {
 
         res.status(500).json({
