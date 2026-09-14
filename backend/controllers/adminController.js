@@ -1616,7 +1616,6 @@ exports.rejectProduct = async (req, res) => {
 
         const product = await Product.findById(req.params.id);
 
-
         if (!product) {
 
             return res.status(404).json({
@@ -6476,39 +6475,200 @@ const estimatedCompletion = new Date(
 
     wallet: wallet._id,
 
-    amount,
+exports.requestWithdrawal = async (req, res) => {
 
-    currency: wallet.currency,
+    try {
 
-    withdrawalMethod,
+        const {
 
-    processingFee,
+            amount,
 
-    netAmount,
+            withdrawalMethod,
 
-    estimatedCompletion,
+            description
 
-    requestedBy: req.user._id,
+        } = req.body;
 
-    ipAddress: req.ip,
+        // ==================================================
+        // Find User's Wallet
+        // ==================================================
 
-    deviceInfo: req.headers["user-agent"],
+        const wallet = await Wallet.findOne({
 
-    description
+            user: req.user._id
 
-});
+        });
+
+        if (!wallet) {
+
+            return res.status(404).json({
+
+                success: false,
+
+                message: "Wallet not found."
+
+            });
+
+        }
+
+        // ==================================================
+        // Check If Wallet Is Locked
+        // ==================================================
+
+        if (wallet.isLocked) {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message: "Wallet is locked."
+
+            });
+
+        }
+
+        // ==================================================
+        // Check Available Balance
+        // ==================================================
+
+        if (wallet.availableBalance < amount) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Insufficient wallet balance."
+
+            });
+
+        }
+
+        // ==================================================
+        // Check KYC Verification
+        // ==================================================
+
+        if (wallet.kycStatus !== "verified") {
+
+            return res.status(403).json({
+
+                success: false,
+
+                message: "Please complete KYC verification before making a withdrawal."
+
+            });
+
+        }
+
+        // ==================================================
+        // Check Daily Transaction Limit
+        // ==================================================
+
+        if (amount > wallet.dailyTransactionLimit) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Daily withdrawal limit exceeded."
+
+            });
+
+        }
+
+        // ==================================================
+        // Check Monthly Transaction Limit
+        // ==================================================
+
+        if (amount > wallet.monthlyTransactionLimit) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message: "Monthly withdrawal limit exceeded."
+
+            });
+
+        }
+
+        // ==================================================
+        // Calculate Processing Fee
+        // ==================================================
+
+        // Default fee = 1% of withdrawal amount
+
+        const processingFee = Number(amount) * 0.01;
+
+        // Amount the user will actually receive
+
+        const netAmount = Number(amount) - processingFee;
+
+        // ==================================================
+        // Estimated Completion Time
+        // ==================================================
+
+        // Estimate 24 hours from now
+
+        const estimatedCompletion = new Date(
+
+            Date.now() + (24 * 60 * 60 * 1000)
+
+        );
+
+        // ==================================================
+        // Create Withdrawal Request
+        // ==================================================
+
+        const withdrawal = await Withdrawal.create({
+
+            user: req.user._id,
+
+            wallet: wallet._id,
+
+            amount,
+
+            currency: wallet.currency,
+
+            withdrawalMethod,
+
+            processingFee,
+
+            netAmount,
+
+            estimatedCompletion,
+
+            requestedBy: req.user._id,
+
+            ipAddress: req.ip,
+
+            deviceInfo: req.headers["user-agent"],
+
+            description
+
+        });
+
         return res.status(201).json({
-        success: true,
-        message: "Withdrawal request created successfully.",
-        data: withdrawal
-    });
+
+            success: true,
+
+            message: "Withdrawal request created successfully.",
+
+            data: withdrawal
+
+        });
 
     } catch (error) {
+
         return res.status(500).json({
+
             success: false,
+
             message: error.message
+
         });
+
     }
+
 };
 
 // ======================================================
