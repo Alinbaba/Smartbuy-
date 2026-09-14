@@ -2370,35 +2370,6 @@ exports.refundOrder = async (req, res) => {
 
         }
 
-        // ======================================================
-// Refund Information
-// ======================================================
-
-refundReason: {
-
-    type: String,
-
-    default: ""
-
-},
-
-refundedBy: {
-
-    type: mongoose.Schema.Types.ObjectId,
-
-    ref: "User",
-
-    default: null
-
-},
-
-refundedAt: {
-
-    type: Date,
-
-    default: null
-
-},
 
         // ==================================================
         // Update Refund Information
