@@ -2230,15 +2230,14 @@ exports.assignLogistics = async (req, res) => {
         }
 
         // ==================================================
-        // Assign Logistics Information
-        // ==================================================
+// Assign Logistics Information
+// ==================================================
 
-        order.logisticsCompany = logisticsCompany;
+order.shipping.courier = logisticsCompany;
 
-        order.trackingNumber = trackingNumber;
+order.shipping.trackingNumber = trackingNumber;
 
-        order.shippingStatus = "assigned";
-
+order.shipping.shippingStatus = "assigned";
         // ======================================================
 
         // ==================================================
